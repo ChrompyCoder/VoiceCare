@@ -1,6 +1,7 @@
 """
 Production Inference Pipeline with Full Agentic AI Integration
 Uses OpenSMILE + XGBoost Model (Best Accuracy: ~90%)
+Includes Voice Stability Analysis with Acoustic Features
 """
 
 import sys
@@ -24,6 +25,7 @@ from .gemini_interface import GeminiInterface
 from .gemini_context import GeminiContextEngine
 from .history_manager import HistoryManager
 from .report_generator import ReportGenerator
+from .voice_stability_analyzer import VoiceStabilityAnalyzer
 
 
 class ProductionInference:
@@ -46,7 +48,7 @@ class ProductionInference:
         print("="*70)
         
         # Load model and scaler
-        print("\n[1/5] Loading trained model and scaler...")
+        print("\n[1/6] Loading trained model and scaler...")
         model_path = config.PRIMARY_MODEL_PATH
         scaler_path = config.SCALER_PATH
         if not model_path.exists() or not scaler_path.exists():
@@ -63,14 +65,20 @@ class ProductionInference:
         print(f"✅ Scaler loaded: {scaler_path.name}")
         
         # Initialize components
-        print("\n[2/5] Initializing AI components...")
+        print("\n[2/6] Initializing AI components...")
         self.gemini = GeminiInterface()
         self.context_engine = GeminiContextEngine()
         self.history_mgr = HistoryManager(user_id=user_id)
         self.report_gen = ReportGenerator()
         print("✅ All components initialized")
 
+        # Initialize voice stability analyzer
+        print("\n[3/6] Initializing voice stability analyzer...")
+        self.stability_analyzer = VoiceStabilityAnalyzer()
+        print("✅ Voice stability analyzer ready")
+
         # Initialize OpenSMILE
+        print("\n[4/6] Initializing OpenSMILE feature extractor...")
         self.smile = opensmile.Smile(
             feature_set=opensmile.FeatureSet.ComParE_2016,
             feature_level=opensmile.FeatureLevel.Functionals,
@@ -213,15 +221,23 @@ class ProductionInference:
         # Predict
         prediction = self.predict(audio_features)
         
+        # Calculate voice stability metrics
+        print("\n[5/7] Calculating voice stability metrics...")
+        stability_metrics = self.stability_analyzer.calculate_stability(audio_path)
+        print(f"✅ Stability Index: {stability_metrics['stability_index']:.3f}")
+        print(f"   Jitter: {stability_metrics['jitter']:.4f}")
+        print(f"   Shimmer: {stability_metrics['shimmer']:.4f}")
+        print(f"   HNR: {stability_metrics['hnr']:.2f} dB")
+        
         # Generate test ID
         test_id = f"VPX-{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         # Get test history
-        print("\n[5/5] Generating AI insights...")
+        print("\n[6/7] Generating AI insights...")
         test_history = self.history_mgr.get_all_tests(limit=10)
         print(f"📊 Found {len(test_history)} previous tests")
         
-        # Create test result object
+        # Create test result object with stability metrics
         test_result = {
             'id': test_id,
             'date': datetime.now().isoformat(),
@@ -229,17 +245,31 @@ class ProductionInference:
             'confidence': prediction['confidence'],
             'risk_level': prediction['risk_level'],
             'model': prediction['model_name'],
-            'audio_file': str(Path(audio_path).name)
+            'audio_file': str(Path(audio_path).name),
+            'stability_metrics': stability_metrics  # Include full stability data
         }
         
-        # Generate Gemini summary
+        # Generate Gemini summary with stability metrics
         print("🤖 Generating empathetic AI summary...")
-        gemini_result = self.gemini.generate_summary(
-            prediction,
-            include_history=len(test_history) > 0,
-            test_history=test_history
-        )
-        test_result['ai_summary'] = gemini_result['summary']
+        try:
+            gemini_result = self.gemini.generate_summary(
+                prediction,
+                include_history=len(test_history) > 0,
+                test_history=test_history,
+                stability_metrics=stability_metrics  # Pass stability metrics to Gemini
+            )
+            
+            # Safely extract summary
+            if isinstance(gemini_result, dict):
+                test_result['ai_summary'] = gemini_result.get('summary', 'Analysis complete.')
+            elif isinstance(gemini_result, str):
+                test_result['ai_summary'] = gemini_result
+            else:
+                test_result['ai_summary'] = 'Your voice analysis is complete. Please consult with a healthcare professional for detailed interpretation.'
+                
+        except Exception as e:
+            print(f"⚠️ Gemini summary generation failed: {e}")
+            test_result['ai_summary'] = 'Your voice analysis is complete. Please consult with a healthcare professional for detailed interpretation.'
         
         # Context-aware progress analysis (if history available)
         if len(test_history) >= 1:

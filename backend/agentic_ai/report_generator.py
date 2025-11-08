@@ -81,6 +81,10 @@ class ReportGenerator:
     def _generate_json_report(self, test_result, shap_summary, gemini_summary, 
                              test_history, test_id):
         """Generate JSON format report"""
+        
+        # Extract stability metrics if available
+        stability_metrics = test_result.get('stability_metrics', {})
+        
         report_data = {
             'report_id': test_id,
             'generated_date': datetime.now().isoformat(),
@@ -92,6 +96,14 @@ class ReportGenerator:
                 'risk_level': test_result.get('risk_level', 'Unknown'),
                 'confidence': test_result.get('confidence', 0),
                 'voice_stability_index': test_result.get('voice_stability_index', 0)
+            },
+            'acoustic_features': {
+                'jitter': stability_metrics.get('jitter', 0),
+                'shimmer': stability_metrics.get('shimmer', 0),
+                'hnr': stability_metrics.get('hnr', 0),
+                'pitch_variation': stability_metrics.get('pitch_variation', 0),
+                'energy_variation': stability_metrics.get('energy_variation', 0),
+                'interpretation': stability_metrics.get('interpretation', 'Not available')
             },
             'ai_analysis': {
                 'shap_findings': shap_summary if shap_summary else {},
@@ -172,13 +184,14 @@ class ReportGenerator:
         risk_score = test_result.get('risk_score', 0)
         risk_level = test_result.get('risk_level', 'Unknown')
         confidence = test_result.get('confidence', 0)
+        stability_metrics = test_result.get('stability_metrics', {})
         
         results_data = [
             ['Test Date:', test_result.get('date', 'N/A')[:10]],
             ['Risk Level:', risk_level],
             ['Risk Score:', f"{risk_score:.2%}"],
             ['Model Confidence:', f"{confidence:.2%}"],
-            ['Voice Stability:', f"{test_result.get('voice_stability_index', 0):.2%}"]
+            ['Voice Stability:', f"{stability_metrics.get('stability_index', 0):.3f}"]
         ]
         
         results_table = Table(results_data, colWidths=[2.5*inch, 3.5*inch])
@@ -194,6 +207,39 @@ class ReportGenerator:
         ]))
         elements.append(results_table)
         elements.append(Spacer(1, 0.3*inch))
+        
+        # Acoustic Features Section
+        if stability_metrics:
+            elements.append(Paragraph('Voice Quality Metrics', heading_style))
+            
+            acoustic_data = [
+                ['Metric', 'Value', 'Interpretation'],
+                ['Jitter (Frequency Stability)', f"{stability_metrics.get('jitter', 0):.4f}", 
+                 'Good' if stability_metrics.get('jitter', 0) <= 0.05 else 'Needs attention'],
+                ['Shimmer (Amplitude Consistency)', f"{stability_metrics.get('shimmer', 0):.4f}",
+                 'Good' if stability_metrics.get('shimmer', 0) <= 0.10 else 'Needs attention'],
+                ['HNR (Voice Clarity)', f"{stability_metrics.get('hnr', 0):.2f} dB",
+                 'Good' if stability_metrics.get('hnr', 0) >= 15 else 'Could be improved'],
+                ['Pitch Variation', f"{stability_metrics.get('pitch_variation', 0):.1f}%",
+                 'Stable' if stability_metrics.get('pitch_variation', 0) <= 15 else 'Variable'],
+                ['Energy Variation', f"{stability_metrics.get('energy_variation', 0):.1f}%",
+                 'Consistent' if stability_metrics.get('energy_variation', 0) <= 25 else 'Variable']
+            ]
+            
+            acoustic_table = Table(acoustic_data, colWidths=[2.5*inch, 1.5*inch, 2*inch])
+            acoustic_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E7D32')),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F5F5')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('PADDING', (0, 0), (-1, -1), 8),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            elements.append(acoustic_table)
+            elements.append(Spacer(1, 0.3*inch))
         
         # Key Findings Section
         if shap_summary:

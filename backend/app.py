@@ -50,19 +50,50 @@ def predict():
 
         # Extract the test result and format for frontend
         test_result = analysis_result['test_result']
+        stability_metrics = test_result.get('stability_metrics', {})
+        
+        # Generate acoustic findings from stability metrics
+        ai_findings = [
+            f"Voice characteristics analyzed using OpenSMILE features",
+            f"XGBoost model prediction with {int(test_result['confidence'] * 100)}% confidence"
+        ]
+        
+        # Add stability-based findings
+        if stability_metrics:
+            jitter = stability_metrics.get('jitter', 0)
+            shimmer = stability_metrics.get('shimmer', 0)
+            hnr = stability_metrics.get('hnr', 0)
+            
+            if jitter > 0.05:
+                ai_findings.append(f"Voice frequency shows slight variation (Jitter: {jitter:.4f})")
+            else:
+                ai_findings.append(f"Voice frequency is stable (Jitter: {jitter:.4f})")
+                
+            if shimmer > 0.10:
+                ai_findings.append(f"Voice amplitude shows some variation (Shimmer: {shimmer:.4f})")
+            else:
+                ai_findings.append(f"Voice amplitude is consistent (Shimmer: {shimmer:.4f})")
+                
+            if hnr < 15:
+                ai_findings.append(f"Harmonic-to-Noise Ratio could be improved (HNR: {hnr:.2f} dB)")
+            else:
+                ai_findings.append(f"Good voice clarity detected (HNR: {hnr:.2f} dB)")
         
         # Format response for frontend
         response = {
             'risk_score': test_result['risk_score'],
             'confidence': test_result['confidence'],
             'risk_level': test_result['risk_level'],
-            'voice_stability_index': 0.85,  # Placeholder
+            'voice_stability_index': stability_metrics.get('stability_index', 0.85),
             'gemini_summary': test_result.get('ai_summary', ''),
-            'ai_findings': [
-                'Voice characteristics analyzed using OpenSMILE features',
-                'Acoustic biomarkers extracted from speech patterns',
-                'XGBoost model prediction with ' + str(int(test_result['confidence'] * 100)) + '% confidence'
-            ]
+            'ai_findings': ai_findings,
+            'acoustic_features': {
+                'jitter': stability_metrics.get('jitter', 0),
+                'shimmer': stability_metrics.get('shimmer', 0),
+                'hnr': stability_metrics.get('hnr', 0),
+                'pitch_variation': stability_metrics.get('pitch_variation', 0),
+                'energy_variation': stability_metrics.get('energy_variation', 0)
+            }
         }
 
         return jsonify(response)

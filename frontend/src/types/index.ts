@@ -1,3 +1,11 @@
+export interface AcousticFeatures {
+  jitter: number;
+  shimmer: number;
+  hnr: number;
+  pitch_variation: number;
+  energy_variation: number;
+}
+
 export interface VoiceTest {
   id: string;
   date: string;
@@ -7,6 +15,7 @@ export interface VoiceTest {
   voice_stability_index: number;
   gemini_summary: string;
   ai_findings: string[];
+  acoustic_features?: AcousticFeatures;
 }
 
 export interface AnalysisResult {
@@ -15,4 +24,5 @@ export interface AnalysisResult {
   gemini_summary: string;
   voice_stability_index: number;
   ai_findings: string[];
+  acoustic_features?: AcousticFeatures;
 }

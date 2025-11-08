@@ -6,6 +6,7 @@ import { RiskChip } from '../components/RiskChip';
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { GeminiInsight } from '../components/GeminiInsight';
 import { ProgressChart } from '../components/ProgressChart';
+import AcousticFeaturesCard from '../components/AcousticFeaturesCard';
 import { useApp } from '../context/AppContext';
 
 export const ResultsPage: React.FC = () => {
@@ -83,6 +84,36 @@ export const ResultsPage: React.FC = () => {
       const summaryLines = pdf.splitTextToSize(latestTest.gemini_summary || 'No summary available', pageWidth - 30);
       pdf.text(summaryLines, 15, yPosition);
       yPosition += summaryLines.length * 5 + 10;
+
+      // Acoustic Features Section
+      if (latestTest.acoustic_features) {
+        if (yPosition > pageHeight - 80) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        pdf.setFontSize(14);
+        pdf.setTextColor(38, 50, 56);
+        pdf.text('Voice Quality Metrics', 15, yPosition);
+        yPosition += 8;
+
+        const features = latestTest.acoustic_features;
+        const metricsData = [
+          ['Jitter (Frequency Stability)', features.jitter.toFixed(4), features.jitter <= 0.05 ? 'Good' : 'Needs Attention'],
+          ['Shimmer (Amplitude Consistency)', features.shimmer.toFixed(4), features.shimmer <= 0.10 ? 'Good' : 'Needs Attention'],
+          ['HNR (Voice Clarity)', `${features.hnr.toFixed(2)} dB`, features.hnr >= 15 ? 'Good' : 'Could be improved'],
+          ['Pitch Variation', `${features.pitch_variation.toFixed(1)}%`, features.pitch_variation <= 15 ? 'Stable' : 'Variable'],
+          ['Energy Variation', `${features.energy_variation.toFixed(1)}%`, features.energy_variation <= 25 ? 'Consistent' : 'Variable']
+        ];
+
+        pdf.setFontSize(9);
+        pdf.setTextColor(84, 110, 122);
+        metricsData.forEach(([metric, value, status]) => {
+          pdf.text(`${metric}: ${value} - ${status}`, 15, yPosition);
+          yPosition += 5;
+        });
+        yPosition += 5;
+      }
 
       // Add chart if available
       if (chartRef.current && tests.length > 1) {
@@ -260,6 +291,11 @@ export const ResultsPage: React.FC = () => {
             )}
           </div>
         </Card>
+
+        {/* Acoustic Features Card */}
+        {latestTest.acoustic_features && (
+          <AcousticFeaturesCard features={latestTest.acoustic_features} />
+        )}
 
         <Card>
           <h2 className="text-xl font-semibold text-[#263238] mb-4">
