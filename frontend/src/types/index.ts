@@ -6,6 +6,20 @@ export interface AcousticFeatures {
   energy_variation: number;
 }
 
+export interface SHAPFeature {
+  name: string;
+  index: number;
+  importance: number;
+  value: number;
+}
+
+export interface SHAPAnalysis {
+  top_features: SHAPFeature[];
+  feature_categories: Record<string, SHAPFeature[]>;
+  explanation: string;
+  visualization_base64?: string;
+}
+
 export interface VoiceTest {
   id: string;
   date: string;
@@ -17,6 +31,7 @@ export interface VoiceTest {
   progress_analysis?: string;
   ai_findings: string[];
   acoustic_features?: AcousticFeatures;
+  shap_analysis?: SHAPAnalysis;
 }
 
 export interface AnalysisResult {
@@ -27,4 +42,5 @@ export interface AnalysisResult {
   voice_stability_index: number;
   ai_findings: string[];
   acoustic_features?: AcousticFeatures;
+  shap_analysis?: SHAPAnalysis;
 }

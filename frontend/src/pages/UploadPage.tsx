@@ -52,7 +52,8 @@ export const UploadPage: React.FC = () => {
         gemini_summary: result.gemini_summary,
         progress_analysis: result.progress_analysis,
         ai_findings: result.ai_findings,
-        acoustic_features: result.acoustic_features
+        acoustic_features: result.acoustic_features,
+        shap_analysis: result.shap_analysis  // Include SHAP data
       };
 
       addTest(test);

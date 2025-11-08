@@ -7,6 +7,7 @@ import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { GeminiInsight } from '../components/GeminiInsight';
 import { ProgressChart } from '../components/ProgressChart';
 import AcousticFeaturesCard from '../components/AcousticFeaturesCard';
+import { SHAPVisualization } from '../components/SHAPVisualization';
 import { useApp } from '../context/AppContext';
 
 export const ResultsPage: React.FC = () => {
@@ -317,6 +318,11 @@ export const ResultsPage: React.FC = () => {
         {/* Acoustic Features Card */}
         {latestTest.acoustic_features && (
           <AcousticFeaturesCard features={latestTest.acoustic_features} />
+        )}
+
+        {/* SHAP Explainability */}
+        {latestTest.shap_analysis && (
+          <SHAPVisualization shapAnalysis={latestTest.shap_analysis} />
         )}
 
         <Card>

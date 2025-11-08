@@ -7,6 +7,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 from . import config
+import base64
+from io import BytesIO
 
 try:
     from reportlab.lib import colors
@@ -257,10 +259,27 @@ class ReportGenerator:
                 elements.append(Paragraph(features_text, styles['BodyText']))
             
             # SHAP visualization
-            if 'visualization' in shap_summary and Path(shap_summary['visualization']).exists():
+            added_image = False
+            if 'visualization' in shap_summary and shap_summary['visualization'] and Path(shap_summary['visualization']).exists():
                 elements.append(Spacer(1, 0.2*inch))
                 img = Image(shap_summary['visualization'], width=5*inch, height=3*inch)
                 elements.append(img)
+                added_image = True
+            elif 'visualization_base64' in shap_summary and shap_summary['visualization_base64']:
+                try:
+                    b64 = shap_summary['visualization_base64']
+                    if b64.startswith('data:image'):
+                        b64 = b64.split(',', 1)[1]
+                    img_bytes = base64.b64decode(b64)
+                    buf = BytesIO(img_bytes)
+                    elements.append(Spacer(1, 0.2*inch))
+                    img = Image(buf, width=5*inch, height=3*inch)
+                    elements.append(img)
+                    added_image = True
+                except Exception:
+                    added_image = False
+            if added_image:
+                elements.append(Spacer(1, 0.1*inch))
             
             elements.append(Spacer(1, 0.3*inch))
         

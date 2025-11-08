@@ -30,30 +30,34 @@ class XGBoostShapExplainer:
         """
         self.model = model
         self.feature_names = feature_names
-        
+
+        # Paths: Prefer XGBoost's built-in contributions; fallback to SHAP Tree/Kernel
+        self.explainer = None
+        self._use_kernel = False
+        self._kernel_background = None
+        self._precomputed_background_mean = None  # Mean feature vector from history (scaled)
+        self._mode = 'auto'  # 'xgb_contrib' | 'tree' | 'kernel' | 'auto'
+
+    def set_background_vectors(self, vectors):
+        """Set historical feature vectors to build a mean-based KernelExplainer background.
+
+        Args:
+            vectors (list[list[float]] or np.ndarray): Collection of past scaled feature vectors.
+        """
         try:
-            # Fix base_score issue in XGBoost model
-            # SHAP has issues with some XGBoost model formats
-            import json
-            model_json = json.loads(self.model.save_config())
-            
-            # Check if base_score is an array string and convert to float
-            if 'learner' in model_json and 'learner_model_param' in model_json['learner']:
-                base_score = model_json['learner']['learner_model_param'].get('base_score', '0.5')
-                if isinstance(base_score, str) and '[' in base_score:
-                    # Extract float from array format like '[5.40404E-1]'
-                    base_score = base_score.strip('[]')
-                    model_json['learner']['learner_model_param']['base_score'] = base_score
-                    
-                    # Save fixed config back to model
-                    self.model.load_config(json.dumps(model_json))
-            
-            # Initialize TreeExplainer for XGBoost Booster
-            self.explainer = shap.TreeExplainer(self.model)
-            print("   SHAP TreeExplainer created successfully")
+            if vectors is None:
+                return
+            arr = np.array(vectors, dtype=float)
+            if arr.ndim == 1:
+                # Single vector
+                self._precomputed_background_mean = arr
+            elif arr.ndim == 2 and arr.shape[0] >= 1:
+                self._precomputed_background_mean = arr.mean(axis=0)
+            else:
+                return
+            print(f"   📦 Loaded historical background mean (shape: {self._precomputed_background_mean.shape})")
         except Exception as e:
-            print(f"   Error creating SHAP explainer: {e}")
-            raise
+            print(f"   ⚠️ Could not set background vectors: {e}")
         
     def explain_prediction(self, audio_features, save_path=None, return_base64=True):
         """
@@ -76,18 +80,19 @@ class XGBoostShapExplainer:
             if len(audio_features.shape) == 1:
                 audio_features = audio_features.reshape(1, -1)
             
-            # Calculate SHAP values
-            shap_values = self.explainer.shap_values(audio_features)
+            # Calculate contributions/SHAP values
+            shap_values, base_value = self._compute_contrib_or_shap(audio_features)
             
             # Get feature importance
             feature_importance = self._analyze_feature_importance(shap_values, audio_features)
             
             # Generate visualization
             viz_result = self._create_visualization(
-                shap_values, 
-                audio_features, 
-                save_path,
-                return_base64
+                shap_values=shap_values,
+                features=audio_features,
+                base_value=base_value,
+                save_path=save_path,
+                return_base64=return_base64
             )
             
             # Create summary
@@ -97,7 +102,9 @@ class XGBoostShapExplainer:
                 'explanation': feature_importance['explanation'],
                 'visualization_path': viz_result.get('path'),
                 'visualization_base64': viz_result.get('base64'),
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'visualization_path': viz_result.get('path'),
+                'visualization_base64': viz_result.get('base64')
             }
             
             return summary
@@ -107,7 +114,7 @@ class XGBoostShapExplainer:
             return {
                 'top_features': [],
                 'feature_categories': {},
-                'explanation': 'SHAP analysis unavailable for this prediction.',
+                'explanation': 'Feature contribution analysis unavailable for this prediction.',
                 'visualization_path': None,
                 'visualization_base64': None,
                 'error': str(e)
@@ -120,8 +127,16 @@ class XGBoostShapExplainer:
         Returns:
             dict: Feature importance analysis
         """
+        # Ensure we have a 1D array of SHAP values for the single sample
+        if isinstance(shap_values, list):
+            # Some explainers return [values] for single output
+            shap_vals_1d = np.array(shap_values[0])
+        else:
+            shap_vals_2d = np.array(shap_values)
+            shap_vals_1d = shap_vals_2d[0] if shap_vals_2d.ndim > 1 else shap_vals_2d
+
         # Get absolute SHAP values
-        shap_abs = np.abs(shap_values[0])
+        shap_abs = np.abs(shap_vals_1d)
         
         # Get indices of top contributing features
         top_indices = np.argsort(shap_abs)[-20:][::-1]
@@ -162,12 +177,84 @@ class XGBoostShapExplainer:
         
         # Generate explanation text
         explanation = self._generate_explanation(top_features, feature_categories)
-        
+
         return {
             'top_features': top_features,
             'categories': feature_categories,
             'explanation': explanation
         }
+
+    def _compute_contrib_or_shap(self, features):
+        """Compute local feature contributions.
+
+        Tries XGBoost's built-in pred_contribs first (fast, reliable). If that fails,
+        falls back to SHAP TreeExplainer, and finally KernelExplainer.
+
+        Returns:
+            (values, base_value): tuple of (np.ndarray, float)
+        """
+        # 1) Try XGBoost's built-in contributions
+        try:
+            import xgboost as xgb
+            dm = xgb.DMatrix(features)
+            contribs = self.model.predict(dm, pred_contribs=True)
+            # contribs shape: (n, n_features + 1), last column is bias term
+            contrib_vector = contribs[0]
+            base_value = float(contrib_vector[-1])
+            values = np.array(contrib_vector[:-1])
+            self._mode = 'xgb_contrib'
+            return values, base_value
+        except Exception as e:
+            print(f"   ⚠️ XGBoost pred_contribs failed: {e}")
+
+        # 2) Try TreeExplainer
+        try:
+            if self.explainer is None or self._mode not in ('tree', 'kernel'):
+                print("   Creating SHAP TreeExplainer...")
+                self.explainer = shap.TreeExplainer(self.model)
+            vals = self.explainer.shap_values(features)
+            expected = self.explainer.expected_value
+            if isinstance(vals, list):
+                vals = np.array(vals[0])
+            values = vals[0] if vals.ndim == 2 else vals
+            base_value = float(np.array(expected).reshape(-1)[0])
+            self._mode = 'tree'
+            print("   ✅ SHAP TreeExplainer created successfully")
+            return values, base_value
+        except Exception as e:
+            print(f"   ⚠️ TreeExplainer failed: {e}")
+
+        # 3) KernelExplainer fallback
+        n_features = features.shape[1]
+
+        def predict_fn(X):
+            import xgboost as xgb
+            dm = xgb.DMatrix(X)
+            margins = self.model.predict(dm, output_margin=True)
+            probs = 1.0 / (1.0 + np.exp(-margins))
+            return probs
+
+        if self._kernel_background is None:
+            if self._precomputed_background_mean is not None and len(self._precomputed_background_mean) == n_features:
+                noise_scale = 0.01
+                self._kernel_background = np.repeat(self._precomputed_background_mean.reshape(1, -1), 50, axis=0)
+                self._kernel_background += np.random.normal(0, noise_scale, self._kernel_background.shape)
+                print("   🟣 KernelExplainer background initialized (mean-based)")
+            else:
+                self._kernel_background = np.zeros((20, n_features), dtype=float)
+                print("   🟣 KernelExplainer background initialized (zeros)")
+
+        if self.explainer is None or self._mode != 'kernel':
+            self.explainer = shap.KernelExplainer(predict_fn, self._kernel_background)
+            print("   ✅ KernelExplainer created")
+        shap_values = self.explainer.shap_values(features, nsamples=100)
+        if isinstance(shap_values, list):
+            shap_values = np.array(shap_values[0])
+        values = shap_values[0] if shap_values.ndim == 2 else shap_values
+        # Approximate base value as model average probability on background
+        base_value = float(np.mean(predict_fn(self._kernel_background)))
+        self._mode = 'kernel'
+        return values, base_value
     
     def _generate_explanation(self, top_features, categories):
         """Generate human-readable explanation"""
@@ -205,42 +292,38 @@ class XGBoostShapExplainer:
         
         return " ".join(explanation_parts) if explanation_parts else "Analysis complete."
     
-    def _create_visualization(self, shap_values, features, save_path=None, return_base64=True):
-        """
-        Create SHAP waterfall plot visualization
-        
+    def _create_visualization(self, shap_values, features, base_value, save_path=None, return_base64=True):
+        """Create a simple contribution bar chart visualization.
+
         Returns:
             dict: Visualization path and/or base64 encoded image
         """
         try:
-            # Create figure
-            fig = plt.figure(figsize=(10, 8))
-            
-            # Create waterfall plot
-            shap.plots.waterfall(
-                shap.Explanation(
-                    values=shap_values[0],
-                    base_values=self.explainer.expected_value,
-                    data=features[0],
-                    feature_names=self.feature_names
-                ),
-                max_display=15,
-                show=False
-            )
-            
-            plt.title('SHAP Feature Impact Analysis', fontsize=14, fontweight='bold')
+            vec = np.array(shap_values)
+            # Select top 15 by absolute contribution
+            k = min(15, len(vec))
+            idx = np.argsort(np.abs(vec))[-k:][::-1]
+            vals = vec[idx]
+            names = [self.feature_names[i] if self.feature_names is not None else f"Feature_{i}" for i in idx]
+            colors = ['#2E7D32' if v < 0 else '#C62828' for v in vals]  # green for lowering risk, red for increasing
+
+            fig, ax = plt.subplots(figsize=(10, 7))
+            y = np.arange(k)
+            ax.barh(y, vals, color=colors)
+            ax.set_yticks(y)
+            ax.set_yticklabels(names)
+            ax.invert_yaxis()
+            ax.axvline(0, color='#444', linewidth=0.8)
+            ax.set_xlabel('Contribution to risk score')
+            ax.set_title('Feature Contribution Analysis')
             plt.tight_layout()
-            
+
             result = {}
-            
-            # Save to file if requested
             if save_path:
                 save_path = Path(save_path)
                 save_path.parent.mkdir(parents=True, exist_ok=True)
                 plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
                 result['path'] = str(save_path)
-            
-            # Convert to base64 if requested
             if return_base64:
                 buffer = BytesIO()
                 plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight', facecolor='white')
@@ -248,11 +331,8 @@ class XGBoostShapExplainer:
                 image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
                 result['base64'] = f"data:image/png;base64,{image_base64}"
                 buffer.close()
-            
             plt.close(fig)
-            
             return result
-            
         except Exception as e:
             print(f"⚠️ Visualization creation failed: {e}")
             plt.close('all')

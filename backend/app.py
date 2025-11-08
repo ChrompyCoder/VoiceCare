@@ -94,7 +94,8 @@ def predict():
                 'hnr': stability_metrics.get('hnr', 0),
                 'pitch_variation': stability_metrics.get('pitch_variation', 0),
                 'energy_variation': stability_metrics.get('energy_variation', 0)
-            }
+            },
+            'shap_analysis': test_result.get('shap_analysis')  # Include SHAP data
         }
 
         return jsonify(response)
