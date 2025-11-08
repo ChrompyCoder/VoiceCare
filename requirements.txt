@@ -25,3 +25,6 @@ tqdm>=4.65.0
 
 # Additional Audio Utilities
 audioread>=3.0.0
+
+# For audio effects (time stretch, pitch shift)
+numba>=0.56.0

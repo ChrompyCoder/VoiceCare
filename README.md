@@ -5,12 +5,34 @@ This project implements a deep learning model using CNN + BiLSTM architecture to
 ## Dataset Structure
 
 ```
-data/figdata/
-├── HC_AH/     # Healthy Controls (41 audio samples)
-└── PD_AH/     # Parkinson's Disease patients (40 audio samples)
+data/
+├── gitdata/
+│   ├── denoised-speech-dataset/
+│   │   └── Faces/          # 113 Parkinson's samples (6 patients)
+│   │       ├── BG_au/ (38 files)
+│   │       ├── JC_au/ (17 files)
+│   │       ├── MJ_au/ (20 files)
+│   │       ├── SK_au/ (17 files)
+│   │       ├── TP_au/ (6 files)
+│   │       └── TS_au/ (15 files)
+│   └── original-speech-dataset/
+│       └── Faces/          # 113 Parkinson's samples (same 6 patients)
+│           ├── BG_ori/ (38 files)
+│           ├── JC_ori/ (17 files)
+│           ├── MJ_ori/ (20 files)
+│           ├── SK_ori/ (17 files)
+│           ├── TP_ori/ (6 files)
+│           └── TS_ori/ (15 files)
+└── figdata/
+    ├── HC_AH/              # 41 Healthy Control samples
+    └── PD_AH/              # 40 Parkinson's Disease samples
 ```
 
-**Total**: 81 audio samples (5-second WAV files at 22050 Hz)
+**Total Dataset:**
+- **Gitdata**: 226 Parkinson's samples (denoised + original)
+- **Figdata**: 81 samples (41 healthy + 40 Parkinson's)
+- **Combined**: 443 audio files
+- **After Augmentation**: ~1300+ training samples
 
 ## Model Architecture
 
@@ -35,26 +57,32 @@ python validate_setup.py
 
 This checks if all dependencies are installed and data is accessible.
 
-### 3. Train the Model
+### Training the Model
 
-**Option A**: Using Python directly
+**Main Training Script** (uses ALL data - gitdata + figdata):
+
+```bash
+python train_combined.py
+```
+
+This script will:
+- **Phase 1**: Load gitdata (226 Parkinson's samples from both denoised and original datasets)
+- **Phase 2**: Load figdata (41 healthy + 40 Parkinson's samples)  
+- **Phase 3**: Combine all data (443 samples total)
+- Apply data augmentation (~3x increase → ~1300+ samples)
+- Split into train (70%), validation (15%), test (15%)
+- Extract Mel-spectrogram features with quality verification
+- Train CNN+BiLSTM model with advanced regularization
+- Detect and warn about overfitting
+- Save best model and comprehensive evaluation plots
+
+**Alternative** (figdata only - original script):
+
 ```bash
 python train.py
 ```
 
-**Option B**: Using the bash script
-```bash
-chmod +x run_training.sh
-./run_training.sh
-```
-
-The script will:
-- Load audio files from `data/figdata/`
-- Split data into train (70%), validation (15%), and test (15%) sets
-- Extract Mel-spectrogram features (128 mel bands)
-- Train the CNN+BiLSTM model
-- Save the best model to `models/` directory
-- Generate training history plots and confusion matrix in `results/` directory
+Uses only figdata (81 samples) for faster training/testing.
 
 ### 4. Make Predictions
 
