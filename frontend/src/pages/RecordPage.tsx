@@ -94,7 +94,6 @@ export const RecordPage: React.FC = () => {
         confidence: result.confidence,
         risk_level: getRiskLevel(result.risk_score),
         voice_stability_index: result.voice_stability_index,
-        shap_image: result.shap_image,
         gemini_summary: result.gemini_summary,
         ai_findings: result.ai_findings
       };

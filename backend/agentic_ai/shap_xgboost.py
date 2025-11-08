@@ -25,19 +25,42 @@ class XGBoostShapExplainer:
         Initialize SHAP explainer for XGBoost
         
         Args:
-            model: Trained XGBoost model
+            model: Trained XGBoost model (xgb.Booster)
             feature_names: List of feature names (optional)
         """
         self.model = model
         self.feature_names = feature_names
-        self.explainer = shap.TreeExplainer(self.model)
+        
+        try:
+            # Fix base_score issue in XGBoost model
+            # SHAP has issues with some XGBoost model formats
+            import json
+            model_json = json.loads(self.model.save_config())
+            
+            # Check if base_score is an array string and convert to float
+            if 'learner' in model_json and 'learner_model_param' in model_json['learner']:
+                base_score = model_json['learner']['learner_model_param'].get('base_score', '0.5')
+                if isinstance(base_score, str) and '[' in base_score:
+                    # Extract float from array format like '[5.40404E-1]'
+                    base_score = base_score.strip('[]')
+                    model_json['learner']['learner_model_param']['base_score'] = base_score
+                    
+                    # Save fixed config back to model
+                    self.model.load_config(json.dumps(model_json))
+            
+            # Initialize TreeExplainer for XGBoost Booster
+            self.explainer = shap.TreeExplainer(self.model)
+            print("   SHAP TreeExplainer created successfully")
+        except Exception as e:
+            print(f"   Error creating SHAP explainer: {e}")
+            raise
         
     def explain_prediction(self, audio_features, save_path=None, return_base64=True):
         """
         Generate SHAP explanation for a single prediction
         
         Args:
-            audio_features: Preprocessed OpenSMILE feature array (1, 6373)
+            audio_features: Preprocessed OpenSMILE feature array (numpy array or DMatrix)
             save_path: Optional path to save visualization
             return_base64: Whether to return base64 encoded image
             
@@ -45,6 +68,14 @@ class XGBoostShapExplainer:
             dict: Explanation summary with SHAP values and insights
         """
         try:
+            # Convert to numpy array if it's a different type
+            if hasattr(audio_features, 'values'):
+                audio_features = audio_features.values
+            
+            # Ensure it's a 2D numpy array
+            if len(audio_features.shape) == 1:
+                audio_features = audio_features.reshape(1, -1)
+            
             # Calculate SHAP values
             shap_values = self.explainer.shap_values(audio_features)
             

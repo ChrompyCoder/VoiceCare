@@ -73,7 +73,7 @@ export const SplashPage: React.FC = () => {
         </Button>
 
         <p className="text-center text-xs text-[#546E7A] mt-6">
-          Powered by Gemini AI + SHAP Explainability
+          Powered by Gemini AI + Advanced ML
         </p>
       </div>
     </div>

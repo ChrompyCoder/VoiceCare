@@ -209,29 +209,6 @@ export const ResultsPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card>
-          <h2 className="text-xl font-semibold text-[#263238] mb-4">
-            AI Feature Focus
-          </h2>
-          <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl p-6 mb-4">
-            <div className="relative aspect-video bg-gradient-to-br from-blue-900 via-purple-900 to-red-900 rounded-lg overflow-hidden">
-              <div className="absolute inset-0 opacity-60" style={{
-                backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
-              }}></div>
-              <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-yellow-400 opacity-40 blur-3xl"></div>
-              <div className="absolute top-1/3 right-1/4 w-1/3 h-1/3 bg-red-500 opacity-30 blur-2xl"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-white text-sm font-mono opacity-75">
-                  SHAP Visualization: Mel-Spectrogram Analysis
-                </p>
-              </div>
-            </div>
-          </div>
-          <p className="text-sm text-[#546E7A]">
-            Highlighted zones indicate parts of your speech that influenced the prediction most.
-          </p>
-        </Card>
-
         <GeminiInsight summary={latestTest.gemini_summary} />
 
         {tests.length > 1 && (

@@ -109,7 +109,7 @@ export const HomePage: React.FC = () => {
 
         <div className="mt-8 text-center">
           <p className="text-xs text-[#546E7A]">
-            Powered by Gemini AI + SHAP Explainability
+            Powered by Gemini AI + Advanced ML
           </p>
         </div>
       </div>

@@ -24,7 +24,6 @@ from .gemini_interface import GeminiInterface
 from .gemini_context import GeminiContextEngine
 from .history_manager import HistoryManager
 from .report_generator import ReportGenerator
-from .shap_xgboost import XGBoostShapExplainer
 
 
 class ProductionInference:
@@ -79,10 +78,6 @@ class ProductionInference:
             verbose=False
         )
         print("✅ OpenSMILE initialized with ComParE_2016 feature set")
-        
-        # Initialize SHAP explainer - delay until first prediction
-        self.shap_explainer = None
-        print("✅ SHAP explainer will be initialized on first prediction")
         
     def denoise_audio(self, audio_path):
         """
@@ -218,39 +213,8 @@ class ProductionInference:
         # Predict
         prediction = self.predict(audio_features)
         
-        # Initialize SHAP explainer on first prediction if not already done
-        if self.shap_explainer is None:
-            try:
-                print("🔧 Initializing SHAP explainer...")
-                self.shap_explainer = XGBoostShapExplainer(self.model)
-                print("✅ SHAP explainer initialized")
-            except Exception as e:
-                print(f"⚠️ SHAP initialization failed: {e}")
-        
         # Generate test ID
         test_id = f"VPX-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
-        # Generate SHAP explanation
-        print("\n💡 Generating SHAP explanation...")
-        if self.shap_explainer is not None:
-            try:
-                shap_summary = self.shap_explainer.explain_prediction(
-                    audio_features,
-                    save_path=config.SHAP_DIR / f'shap_{test_id}.png',
-                    return_base64=True
-                )
-            except Exception as e:
-                print(f"⚠️ SHAP explanation failed: {e}")
-                shap_summary = {
-                    'visualization_base64': None,
-                    'explanation': 'SHAP analysis unavailable for this prediction.'
-                }
-        else:
-            print("⚠️ SHAP explainer not initialized")
-            shap_summary = {
-                'visualization_base64': None,
-                'explanation': 'SHAP analysis unavailable for this prediction.'
-            }
         
         # Get test history
         print("\n[5/5] Generating AI insights...")
@@ -265,9 +229,7 @@ class ProductionInference:
             'confidence': prediction['confidence'],
             'risk_level': prediction['risk_level'],
             'model': prediction['model_name'],
-            'audio_file': str(Path(audio_path).name),
-            'shap_image': shap_summary.get('visualization_base64'),
-            'shap_explanation': shap_summary.get('explanation')
+            'audio_file': str(Path(audio_path).name)
         }
         
         # Generate Gemini summary
@@ -299,7 +261,7 @@ class ProductionInference:
             print("📄 Generating reports...")
             reports = self.report_gen.generate_full_report(
                 test_result,
-                shap_summary=self.shap_explainer.generate_summary_report(shap_summary),
+                shap_summary=None,
                 gemini_summary=test_result['ai_summary'],
                 test_history=test_history,
                 format='both'
