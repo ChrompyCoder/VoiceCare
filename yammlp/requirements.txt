@@ -1,0 +1,25 @@
+# YAMNet + MLP for Parkinson's Detection
+# Duration filter: > 2 seconds
+
+# Core ML libraries
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# TensorFlow for YAMNet and MLP
+tensorflow>=2.15.0
+tensorflow-hub>=0.16.0
+
+# Audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Audio denoising
+noisereduce>=3.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Utilities
+tqdm>=4.65.0
