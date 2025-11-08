@@ -426,41 +426,105 @@ class XGBoostShapExplainer:
             return {'path': None, 'base64': None, 'error': str(e)}
 
     def _create_heatmap(self, shap_values, features, save_path=None, return_base64=True):
-        """Create a heatmap of top-K feature values and contributions.
+        """Create a "liquidation-style" heatmap for top-K features.
 
-        For a single test, we present two columns per feature: value and contribution.
+        Visual style:
+        - Dark background with neon gradient (viridis) like trading liquidation maps
+        - Horizontal streaks via tiling and slight noise for a fluid look
+        - Overlay a polyline representing contribution magnitude per feature
+        - Colorbar on the right
         """
         try:
             vec = np.array(shap_values)
             k = min(20, len(vec))
             idx = np.argsort(np.abs(vec))[-k:][::-1]
 
+            # Values and contributions for selected features
             contribs = vec[idx]
             vals = features[0, idx]
 
-            data = np.vstack([vals, contribs]).T  # shape (k, 2)
-            row_labels = [self.feature_names[i] if self.feature_names is not None else f"Feature_{i}" for i in idx]
-            col_labels = ["Value", "Contribution"]
+            # Normalize to [0,1] for color mapping
+            def norm(x):
+                x = np.array(x, dtype=float)
+                if np.allclose(np.max(x), np.min(x)):
+                    return np.zeros_like(x)
+                return (x - np.min(x)) / (np.max(x) - np.min(x))
 
-            fig, ax = plt.subplots(figsize=(8, 0.4 * k + 2))
-            im = ax.imshow(data, aspect='auto', cmap='coolwarm')
-            ax.set_yticks(np.arange(k))
-            ax.set_yticklabels(row_labels)
-            ax.set_xticks(np.arange(2))
-            ax.set_xticklabels(col_labels)
-            plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-            ax.set_title('Top Feature Values and Contributions (Heatmap)')
+            v_norm = norm(vals)
+            c_abs = np.abs(contribs)
+            c_norm = norm(c_abs)
+
+            # Build a wide matrix with horizontal bands to mimic liquidation heatmap
+            # Left half encodes feature values, right half encodes contribution magnitude
+            width_per_panel = 180  # columns per panel
+            H = k
+            W = width_per_panel * 2
+            heat = np.zeros((H, W), dtype=float)
+            # Fill left and right panels with row-wise constants then add slight noise bands
+            for i in range(H):
+                heat[i, :width_per_panel] = v_norm[i]
+                heat[i, width_per_panel:] = c_norm[i]
+            # Add subtle horizontal banding and blur-like effect
+            rng = np.random.default_rng(42)
+            noise = rng.normal(0, 0.03, size=heat.shape)
+            heat = np.clip(heat + noise, 0, 1)
+
+            # Figure setup (dark theme)
+            fig_height = max(3.0, 0.28 * k + 2.0)
+            fig, ax = plt.subplots(figsize=(10, fig_height))
+            fig.patch.set_facecolor('#0b0f19')
+            ax.set_facecolor('#0b0f19')
+
+            im = ax.imshow(
+                heat,
+                aspect='auto',
+                cmap='viridis',
+                interpolation='bilinear',
+                vmin=0,
+                vmax=1
+            )
+
+            # Y labels: feature-friendly names
+            row_labels = [self._friendly_name(self.feature_names[i] if self.feature_names is not None else f"Feature_{i}") for i in idx]
+            ax.set_yticks(np.arange(H))
+            ax.set_yticklabels(row_labels, color='#e5e7eb', fontsize=9)
+
+            # X labels: panels
+            ax.set_xticks([width_per_panel/2, width_per_panel + width_per_panel/2])
+            ax.set_xticklabels(['Value', 'Contribution'], color='#e5e7eb', fontsize=10)
+
+            # Gridlines and spines minimal
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+            ax.tick_params(axis='both', colors='#9ca3af', length=0)
+
+            # Overlay polyline mapping contribution sign/magnitude to X in Contribution panel
+            # Map contribution value to x in right panel
+            if np.max(np.abs(contribs)) > 0:
+                # scale contributions to [0, width_per_panel]
+                s = (contribs - np.min(contribs)) / (np.max(contribs) - np.min(contribs) + 1e-9)
+                x_coords = width_per_panel + s * (width_per_panel - 1)
+                y_coords = np.arange(H)
+                ax.plot(x_coords, y_coords, color='#ff9800', linewidth=1.6, alpha=0.9)
+
+            # Colorbar styled
+            cbar = plt.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
+            cbar.outline.set_edgecolor('#374151')
+            cbar.ax.tick_params(colors='#e5e7eb', labelsize=8)
+            cbar.set_label('Intensity', color='#e5e7eb')
+
+            ax.set_title('Top Features: Value (L) vs Contribution (R)', color='#e5e7eb')
             plt.tight_layout()
 
             result = {}
             if save_path:
                 save_path = Path(save_path)
                 save_path.parent.mkdir(parents=True, exist_ok=True)
-                plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+                plt.savefig(save_path, dpi=160, bbox_inches='tight', facecolor=fig.get_facecolor())
                 result['path'] = str(save_path)
             if return_base64:
                 buffer = BytesIO()
-                plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+                plt.savefig(buffer, format='png', dpi=160, bbox_inches='tight', facecolor=fig.get_facecolor())
                 buffer.seek(0)
                 image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
                 result['base64'] = f"data:image/png;base64,{image_base64}"
