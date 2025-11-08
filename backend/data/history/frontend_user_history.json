@@ -1,5 +1,41 @@
 [
   {
+    "id": "VPX-20251108204011",
+    "date": "2025-11-08T20:40:11.538523",
+    "risk_score": 0.11835002154111862,
+    "confidence": 0.7632999569177628,
+    "risk_level": "Low",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "recording.wav",
+    "ai_summary": "I've reviewed your voice analysis, and while the risk score is still low, I noticed the trend is slightly worsening compared to your previous tests today. It might be a good idea to schedule a consultation with a neurologist to discuss these changes. Continuing these voice tests regularly will help us monitor any further shifts.\n",
+    "progress_analysis": "The recent voice health screenings show a concerning trend, with the risk score worsening by 59.3% (change of 0.106) despite the current \"Low\" risk level of 0.118. While the consistency of testing is excellent, the recent history shows a jump from 0.199 to 0.449 before returning to the current low, suggesting possible fluctuations. Given this pattern, it's important to proactively monitor your voice and note any potential contributing factors like vocal strain or environmental changes. Consider consulting with a voice specialist for personalized strategies to maintain vocal health and stability, building on your diligence in regular screenings.\n",
+    "trend": "worsening"
+  },
+  {
+    "id": "VPX-20251108203812",
+    "date": "2025-11-08T20:38:12.097256",
+    "risk_score": 0.11835002154111862,
+    "confidence": 0.7632999569177628,
+    "risk_level": "Low",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "recording.wav",
+    "ai_summary": "From the voice analysis, your results appear generally stable, but seem to be trending towards worsening over the last few tests. While the risk level is currently low, it may be a good idea to schedule a check-up with a professional for further evaluation. Consistent monitoring with these tests can help track any changes.\n",
+    "progress_analysis": "Your recent voice health screenings show a promising trend with your risk score decreasing to 0.118, classified as \"Low,\" which is a welcome improvement from the \"Moderate\" level earlier today. Although the overall trend analysis indicates a worsening direction, this recent dip in risk score is a positive sign that your efforts are making a difference. Given the excellent consistency in your tests, continue monitoring your voice regularly and focusing on the strategies that seem to be working; perhaps consider journaling about your daily activities to identify factors that correlate with better voice health scores. Consistent monitoring empowers you to take proactive steps for your vocal well-being.\n",
+    "trend": "worsening"
+  },
+  {
+    "id": "VPX-20251108203706",
+    "date": "2025-11-08T20:37:06.635400",
+    "risk_score": 0.44893935322761536,
+    "confidence": 0.10212129354476929,
+    "risk_level": "Moderate",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "recording.wav",
+    "ai_summary": "From your voice analysis, there appears to be a moderate risk level, but thankfully your scores are showing improvement from previous tests. While these tests are not definitive, it may be beneficial to discuss these results with a healthcare professional for further evaluation. Keep up the good work in monitoring and consistent testing!\n",
+    "progress_analysis": "The recent voice health screenings show a concerning trend. While your testing consistency is excellent, the risk score has increased to 0.449 (\"Moderate\") from a recent low of 0.157, indicating a worsening condition with a magnitude of 94.8. To better understand this shift, consider consulting with a voice health professional to discuss potential contributing factors and preventative strategies. Continued consistent testing and professional guidance can help you proactively manage your voice health.\n",
+    "trend": "worsening"
+  },
+  {
     "id": "VPX-20251108203203",
     "date": "2025-11-08T20:32:03.907795",
     "risk_score": 0.19927877187728882,

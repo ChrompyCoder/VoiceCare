@@ -48,7 +48,24 @@ def predict():
         # Clean up the uploaded file
         os.remove(save_path)
 
-        return jsonify(analysis_result)
+        # Extract the test result and format for frontend
+        test_result = analysis_result['test_result']
+        
+        # Format response for frontend
+        response = {
+            'risk_score': test_result['risk_score'],
+            'confidence': test_result['confidence'],
+            'risk_level': test_result['risk_level'],
+            'voice_stability_index': 0.85,  # Placeholder
+            'gemini_summary': test_result.get('ai_summary', ''),
+            'ai_findings': [
+                'Voice characteristics analyzed using OpenSMILE features',
+                'Acoustic biomarkers extracted from speech patterns',
+                'XGBoost model prediction with ' + str(int(test_result['confidence'] * 100)) + '% confidence'
+            ]
+        }
+
+        return jsonify(response)
 
     except Exception as e:
         print(f"An error occurred during prediction: {e}")
