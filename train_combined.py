@@ -1,34 +1,36 @@
 """
 Project: Voice-Based Parkinson's Disease Detection using CNN + BiLSTM
-Enhanced Version: Uses ALL available data from gitdata and figdata
+Enhanced Version: Uses denoised-speech-dataset + figdata with K-Fold CV
 
-Dataset Summary:
+Dataset Clarification:
 GITDATA (Parkinson's patients only):
-  - denoised-speech-dataset/Faces: ~113 samples (BG_au, JC_au, MJ_au, SK_au, TP_au, TS_au)
-  - original-speech-dataset/Faces: ~113 samples (BG_ori, JC_ori, MJ_ori, SK_ori, TP_ori, TS_ori)
-  - Total: ~226 Parkinson's samples
-
-FIGDATA (Mixed):
-  - HC_AH: 41 Healthy Control samples
-  - PD_AH: 40 Parkinson's Disease samples
+  - denoised-speech-dataset/Faces: ~113 Parkinson's samples
+  - NOTE: original-speech-dataset is the same data, so we use ONLY denoised version
+  
+FIGDATA (Mixed - Healthy + Parkinson's):
+  - HC_AH: 41 samples (HEALTHY CONTROLS - NOT Parkinson's)
+  - PD_AH: 40 samples (PARKINSON'S DISEASE patients)
   - Total: 81 samples
 
-COMBINED TOTAL: ~443 audio samples (with augmentation: ~1300+ samples)
+COMBINED TOTAL: ~194 audio samples (after filtering duration > 3 seconds)
 
 Training Strategy:
-1. Phase 1: Load and prepare gitdata (all Parkinson's samples)
-2. Phase 2: Load and prepare figdata (healthy + Parkinson's samples)
-3. Phase 3: Combine all data and split into train/validation/test
-4. Train CNN+BiLSTM model on combined dataset
-5. Monitor for overfitting and apply regularization
-6. Verify feature extraction quality
+1. Phase 1: Load gitdata (denoised-speech-dataset only - Parkinson's samples)
+2. Phase 2: Load figdata (HC_AH=Healthy + PD_AH=Parkinson's)
+3. Phase 3: Filter audio clips with duration > 3 seconds
+4. Phase 4: Combine all data and apply K-Fold Cross Validation (5 folds)
+5. Train CNN+BiLSTM model with K-Fold validation
+6. Monitor for overfitting and apply regularization
+7. Verify feature extraction quality
 
 Features:
+- K-Fold Cross Validation (5 folds for robust evaluation)
+- Audio duration filtering (>3 seconds only)
 - Data augmentation (noise, time-stretch, pitch-shift)
 - Advanced regularization (L2, dropout, batch normalization)
 - Automatic overfitting detection
 - Feature quality verification with visualizations
-- Comprehensive metrics tracking
+- Comprehensive metrics tracking per fold
 
 Author: Tushar (Hackathon Build)
 """
@@ -52,10 +54,14 @@ import json
 # 📂 DATASET CONFIGURATION
 # =============================
 FIGDATA_PATH = "data/figdata"
-GITDATA_PATH = "data/gitdata/denoised-speech-dataset"
+GITDATA_PATH = "data/gitdata"
 SAMPLE_RATE = 22050
-DURATION = 5  # seconds
+MIN_DURATION = 3.0  # Minimum duration in seconds - only use clips > 3 seconds
+DURATION = 5  # seconds for feature extraction
 SAMPLES_PER_FILE = SAMPLE_RATE * DURATION
+
+# K-Fold Configuration
+N_FOLDS = 5  # Number of folds for cross-validation
 
 # Training configuration
 USE_REGULARIZATION = True
@@ -66,80 +72,130 @@ DATA_AUGMENTATION = True
 # =============================
 # 🧹 DATA LOADER & FEATURE EXTRACTION
 # =============================
+# =============================
+# 🧹 DATA LOADER & FEATURE EXTRACTION
+# =============================
+def get_audio_duration(file_path):
+    """Get duration of audio file in seconds"""
+    try:
+        duration = librosa.get_duration(path=file_path)
+        return duration
+    except Exception as e:
+        print(f"Error getting duration for {file_path}: {e}")
+        return 0.0
+
 def load_gitdata(base_path):
     """
-    Load ALL gitdata - contains only Parkinson's patient data
-    Loads from both:
-    - denoised-speech-dataset/Faces/[BG_au, JC_au, MJ_au, SK_au, TP_au, TS_au] (113 files)
-    - original-speech-dataset/Faces/[BG_ori, JC_ori, MJ_ori, SK_ori, TP_ori, TS_ori] (113 files)
-    Total: ~226 Parkinson's samples
+    Load gitdata - ONLY denoised-speech-dataset (Parkinson's patients only)
+    NOTE: We use ONLY denoised dataset because original-speech-dataset is the same data
+    
+    Filter: Only audio clips with duration > MIN_DURATION seconds
+    
+    Structure: denoised-speech-dataset/Faces/[BG_au, JC_au, MJ_au, SK_au, TP_au, TS_au]
+    Label: All samples are Parkinson's patients (label = 1)
     """
     X, y = [], []
+    skipped_short = 0
     
-    # Load denoised-speech-dataset
+    # Load ONLY denoised-speech-dataset (NOT original, as it's duplicate data)
     denoised_path = os.path.join(base_path, "denoised-speech-dataset", "Faces")
+    
     if os.path.exists(denoised_path):
-        print(f"Loading denoised-speech-dataset from {denoised_path}")
+        print(f"Loading gitdata (PARKINSON'S PATIENTS) from {denoised_path}")
+        print(f"NOTE: Using ONLY denoised dataset (original is duplicate)")
+        print(f"Filtering: Only clips with duration > {MIN_DURATION} seconds\n")
+        
         for person_folder in os.listdir(denoised_path):
             person_path = os.path.join(denoised_path, person_folder)
             if os.path.isdir(person_path):
                 wav_files = [f for f in os.listdir(person_path) if f.endswith(".wav")]
+                valid_count = 0
+                
                 for file in wav_files:
                     file_path = os.path.join(person_path, file)
-                    X.append(file_path)
-                    y.append(1)  # Parkinson's
-                print(f"  {person_folder}: {len(wav_files)} files")
-        print(f"  Total denoised: {len([f for f in X if 'denoised' in f])} samples")
+                    duration = get_audio_duration(file_path)
+                    
+                    if duration > MIN_DURATION:
+                        X.append(file_path)
+                        y.append(1)  # Parkinson's
+                        valid_count += 1
+                    else:
+                        skipped_short += 1
+                
+                print(f"  {person_folder}: {valid_count}/{len(wav_files)} files (>{MIN_DURATION}s)")
+        
+        print(f"\n  ✓ Total gitdata: {len(X)} Parkinson's samples")
+        print(f"  ✗ Skipped: {skipped_short} files (duration ≤ {MIN_DURATION}s)")
+    else:
+        print(f"Warning: Path not found: {denoised_path}")
     
-    # Load original-speech-dataset
-    original_path = os.path.join(base_path, "original-speech-dataset", "Faces")
-    if os.path.exists(original_path):
-        print(f"\nLoading original-speech-dataset from {original_path}")
-        original_count_start = len(X)
-        for person_folder in os.listdir(original_path):
-            person_path = os.path.join(original_path, person_folder)
-            if os.path.isdir(person_path):
-                wav_files = [f for f in os.listdir(person_path) if f.endswith(".wav")]
-                for file in wav_files:
-                    file_path = os.path.join(person_path, file)
-                    X.append(file_path)
-                    y.append(1)  # Parkinson's
-                print(f"  {person_folder}: {len(wav_files)} files")
-        print(f"  Total original: {len(X) - original_count_start} samples")
-    
-    print(f"\n  TOTAL GITDATA: {len(X)} Parkinson's samples")
     return np.array(X), np.array(y)
 
 def load_figdata(base_path):
     """
-    Load figdata - contains both Healthy Controls and Parkinson's patients
-    Structure:
-        HC_AH/  -> Healthy Controls (label 0)
-        PD_AH/  -> Parkinson's Disease (label 1)
+    Load figdata - contains BOTH Healthy Controls and Parkinson's patients
+    
+    IMPORTANT CLARIFICATION:
+    - HC_AH: HEALTHY CONTROLS (label 0) - NOT Parkinson's
+    - PD_AH: PARKINSON'S DISEASE patients (label 1)
+    
+    Filter: Only audio clips with duration > MIN_DURATION seconds
     """
     X, y = [], []
+    skipped_short = 0
     
-    # Load Healthy Controls
+    print(f"Filtering: Only clips with duration > {MIN_DURATION} seconds\n")
+    
+    # Load Healthy Controls (HC_AH = HEALTHY PATIENTS, NOT Parkinson's)
     hc_path = os.path.join(base_path, "HC_AH")
+    hc_count = 0
     if os.path.exists(hc_path):
-        print(f"Loading healthy controls from {hc_path}")
+        print(f"Loading HEALTHY CONTROLS (HC_AH) from {hc_path}")
+        total_files = 0
+        
         for file in os.listdir(hc_path):
             if file.endswith(".wav"):
+                total_files += 1
                 file_path = os.path.join(hc_path, file)
-                X.append(file_path)
-                y.append(0)  # Healthy
-        print(f"  Loaded {len([f for f in os.listdir(hc_path) if f.endswith('.wav')])} healthy control files")
+                duration = get_audio_duration(file_path)
+                
+                if duration > MIN_DURATION:
+                    X.append(file_path)
+                    y.append(0)  # Healthy (NOT Parkinson's)
+                    hc_count += 1
+                else:
+                    skipped_short += 1
+        
+        print(f"  ✓ Loaded {hc_count}/{total_files} HEALTHY files (>{MIN_DURATION}s)")
+    else:
+        print(f"Warning: Path not found: {hc_path}")
     
-    # Load Parkinson's Disease patients
+    # Load Parkinson's Disease patients (PD_AH = PARKINSON'S PATIENTS)
     pd_path = os.path.join(base_path, "PD_AH")
+    pd_count = 0
     if os.path.exists(pd_path):
-        print(f"Loading Parkinson's patients from {pd_path}")
+        print(f"Loading PARKINSON'S PATIENTS (PD_AH) from {pd_path}")
+        total_files = 0
+        
         for file in os.listdir(pd_path):
             if file.endswith(".wav"):
+                total_files += 1
                 file_path = os.path.join(pd_path, file)
-                X.append(file_path)
-                y.append(1)  # Parkinson's
-        print(f"  Loaded {len([f for f in os.listdir(pd_path) if f.endswith('.wav')])} Parkinson's patient files")
+                duration = get_audio_duration(file_path)
+                
+                if duration > MIN_DURATION:
+                    X.append(file_path)
+                    y.append(1)  # Parkinson's
+                    pd_count += 1
+                else:
+                    skipped_short += 1
+        
+        print(f"  ✓ Loaded {pd_count}/{total_files} PARKINSON'S files (>{MIN_DURATION}s)")
+    else:
+        print(f"Warning: Path not found: {pd_path}")
+    
+    print(f"\n  ✓ Total figdata: {len(X)} samples ({hc_count} healthy + {pd_count} Parkinson's)")
+    print(f"  ✗ Skipped: {skipped_short} files (duration ≤ {MIN_DURATION}s)")
     
     return np.array(X), np.array(y)
 
@@ -359,13 +415,13 @@ def detect_overfitting(history):
     return False
 
 # =============================
-# ⚙️ TRAINING PIPELINE
+# ⚙️ TRAINING PIPELINE WITH K-FOLD CV
 # =============================
 def main():
-    print("=" * 60)
+    print("=" * 70)
     print("Voice-Based Parkinson's Disease Detection")
-    print("CNN + BiLSTM Model Training (Combined Dataset)")
-    print("=" * 60)
+    print("CNN + BiLSTM Model Training with K-Fold Cross Validation")
+    print("=" * 70)
     print()
     
     os.makedirs("models", exist_ok=True)
@@ -373,287 +429,298 @@ def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # =============================
-    # PHASE 1: Load and prepare GITDATA
+    # PHASE 1: Load GITDATA (Parkinson's only)
     # =============================
-    print("\n" + "=" * 60)
-    print("PHASE 1: Loading GITDATA (Parkinson's patients only)")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("PHASE 1: Loading GITDATA (Parkinson's patients - denoised only)")
+    print("=" * 70)
     
     X_git_paths, y_git = load_gitdata(GITDATA_PATH)
-    print(f"\nTotal gitdata samples: {len(X_git_paths)}")
-    
-    X_git = None
-    y_git_processed = None
-    
-    if len(X_git_paths) > 0:
-        print("\nExtracting features from gitdata...")
-        X_git, y_git_processed = prepare_dataset(X_git_paths, y_git, augment=DATA_AUGMENTATION)
-        verify_features(X_git, y_git_processed, "GITDATA")
-        
-        print("\n" + "=" * 60)
-        print(f"✓ GITDATA prepared: {len(X_git)} samples (after augmentation)")
-        print("  This data will be combined with FIGDATA for training")
-        print("=" * 60)
-    else:
-        print("No samples found in gitdata. Proceeding to figdata only.")
     
     # =============================
-    # PHASE 2: Load and prepare FIGDATA
+    # PHASE 2: Load FIGDATA (Healthy + Parkinson's)
     # =============================
-    print("\n" + "=" * 60)
-    print("PHASE 2: Loading FIGDATA (Healthy + Parkinson's)")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("PHASE 2: Loading FIGDATA (HC_AH=Healthy + PD_AH=Parkinson's)")
+    print("=" * 70)
     
     X_fig_paths, y_fig = load_figdata(FIGDATA_PATH)
     
-    if len(X_fig_paths) == 0:
-        print("No audio files found! Please check the data directory.")
+    if len(X_fig_paths) == 0 and len(X_git_paths) == 0:
+        print("\n❌ ERROR: No audio files found! Please check the data directory.")
         return
     
-    print("\nExtracting features from figdata...")
-    X_fig, y_fig_processed = prepare_dataset(X_fig_paths, y_fig, augment=DATA_AUGMENTATION)
-    verify_features(X_fig, y_fig_processed, "FIGDATA")
-    
-    print("\n" + "=" * 60)
-    print(f"✓ FIGDATA prepared: {len(X_fig)} samples (after augmentation)")
-    print("=" * 60)
-    
     # =============================
-    # PHASE 3: Combine datasets and split
+    # PHASE 3: Combine ALL data
     # =============================
-    print("\n" + "=" * 60)
-    print("PHASE 3: Combining datasets for training")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("PHASE 3: Combining ALL datasets")
+    print("=" * 70)
     
-    if X_git is not None and len(X_git) > 0:
-        # Combine gitdata (all Parkinson's) with figdata (mixed)
-        print(f"Combining {len(X_git)} gitdata samples with {len(X_fig)} figdata samples")
-        X_combined = np.concatenate([X_git, X_fig], axis=0)
-        y_combined = np.concatenate([y_git_processed, y_fig_processed], axis=0)
-        print(f"Total combined samples: {len(X_combined)}")
+    # Combine paths
+    if len(X_git_paths) > 0 and len(X_fig_paths) > 0:
+        X_all_paths = np.concatenate([X_git_paths, X_fig_paths])
+        y_all = np.concatenate([y_git, y_fig])
+        print(f"✓ Combined {len(X_git_paths)} gitdata + {len(X_fig_paths)} figdata")
+    elif len(X_git_paths) > 0:
+        X_all_paths = X_git_paths
+        y_all = y_git
+        print(f"✓ Using gitdata only: {len(X_git_paths)} samples")
     else:
-        # Use only figdata
-        print("Using figdata only (gitdata not available)")
-        X_combined = X_fig
-        y_combined = y_fig_processed
+        X_all_paths = X_fig_paths
+        y_all = y_fig
+        print(f"✓ Using figdata only: {len(X_fig_paths)} samples")
+    
+    print(f"\nTotal audio files (>3s duration): {len(X_all_paths)}")
     
     # Check label distribution
-    unique, counts = np.unique(y_combined, return_counts=True)
+    unique, counts = np.unique(y_all, return_counts=True)
     print(f"\nCombined dataset distribution:")
     for label, count in zip(unique, counts):
         label_name = "Healthy" if label == 0 else "Parkinson's"
-        print(f"  {label_name}: {count} samples ({count/len(y_combined)*100:.1f}%)")
-    
-    # Split combined dataset: 70% train, 15% validation (from train), 15% test
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_combined, y_combined, test_size=0.15, stratify=y_combined, random_state=42
-    )
-    
-    print(f"\nFinal dataset split:")
-    print(f"Training set: {len(X_train)} samples")
-    print(f"Test set: {len(X_test)} samples")
-    print(f"Validation: ~{int(len(X_train) * 0.18)} samples (from training set)")
-    
-    # Build model
-    print("\n" + "=" * 60)
-    print("Building CNN + BiLSTM model with regularization...")
-    print("=" * 60)
-    input_shape = X_train.shape[1:]
-    print(f"Input shape: {input_shape}")
-    print(f"Total training samples: {len(X_train)}")
-    print(f"Total test samples: {len(X_test)}")
-    print(f"Using regularization: {USE_REGULARIZATION}")
-    print(f"L2 regularization: {L2_REG}")
-    print(f"Dropout rate: {DROPOUT_RATE}")
-    print(f"Data augmentation: {DATA_AUGMENTATION}")
-    
-    model = build_cnn_bilstm(input_shape, USE_REGULARIZATION, DROPOUT_RATE)
-    model.summary()
-    
-    # Setup callbacks
-    model_path = f"models/best_model_combined_{timestamp}.h5"
-    
-    checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        model_path, 
-        monitor="val_accuracy", 
-        save_best_only=True, 
-        mode="max",
-        verbose=1
-    )
-    early_stopping = tf.keras.callbacks.EarlyStopping(
-        monitor="val_loss", 
-        patience=20, 
-        restore_best_weights=True,
-        verbose=1
-    )
-    lr_schedule = tf.keras.callbacks.ReduceLROnPlateau(
-        monitor="val_loss", 
-        factor=0.5, 
-        patience=10, 
-        min_lr=1e-7,
-        verbose=1
-    )
-    
-    # Train model
-    print("\n" + "=" * 60)
-    print("Training model on COMBINED dataset (gitdata + figdata)...")
-    print("=" * 60)
-    
-    history = model.fit(
-        X_train, y_train,
-        validation_split=0.18,  # ~15% of total data for validation
-        epochs=150,
-        batch_size=8,  # Smaller batch for better generalization
-        callbacks=[checkpoint, early_stopping, lr_schedule],
-        verbose=1
-    )
-    
-    # Detect overfitting
-    is_overfitting = detect_overfitting(history)
-    
-    # Save training history
-    print("\n" + "=" * 60)
-    print("Saving training history...")
-    
-    # Plot training history
-    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-    
-    # Accuracy
-    axes[0, 0].plot(history.history['accuracy'], label='Train Accuracy', linewidth=2)
-    axes[0, 0].plot(history.history['val_accuracy'], label='Val Accuracy', linewidth=2)
-    axes[0, 0].set_title('Model Accuracy', fontsize=14, fontweight='bold')
-    axes[0, 0].set_xlabel('Epoch')
-    axes[0, 0].set_ylabel('Accuracy')
-    axes[0, 0].legend()
-    axes[0, 0].grid(True, alpha=0.3)
-    
-    # Loss
-    axes[0, 1].plot(history.history['loss'], label='Train Loss', linewidth=2)
-    axes[0, 1].plot(history.history['val_loss'], label='Val Loss', linewidth=2)
-    axes[0, 1].set_title('Model Loss', fontsize=14, fontweight='bold')
-    axes[0, 1].set_xlabel('Epoch')
-    axes[0, 1].set_ylabel('Loss')
-    axes[0, 1].legend()
-    axes[0, 1].grid(True, alpha=0.3)
-    
-    # Precision
-    axes[1, 0].plot(history.history['precision'], label='Train Precision', linewidth=2)
-    axes[1, 0].plot(history.history['val_precision'], label='Val Precision', linewidth=2)
-    axes[1, 0].set_title('Model Precision', fontsize=14, fontweight='bold')
-    axes[1, 0].set_xlabel('Epoch')
-    axes[1, 0].set_ylabel('Precision')
-    axes[1, 0].legend()
-    axes[1, 0].grid(True, alpha=0.3)
-    
-    # Recall
-    axes[1, 1].plot(history.history['recall'], label='Train Recall', linewidth=2)
-    axes[1, 1].plot(history.history['val_recall'], label='Val Recall', linewidth=2)
-    axes[1, 1].set_title('Model Recall', fontsize=14, fontweight='bold')
-    axes[1, 1].set_xlabel('Epoch')
-    axes[1, 1].set_ylabel('Recall')
-    axes[1, 1].legend()
-    axes[1, 1].grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(f'results/training_history_combined_{timestamp}.png', dpi=300)
-    print(f"Training history plot saved to results/training_history_combined_{timestamp}.png")
-    plt.close()
+        print(f"  {label_name}: {count} samples ({count/len(y_all)*100:.1f}%)")
     
     # =============================
-    # 📈 EVALUATION
+    # PHASE 4: Extract Features
     # =============================
-    print("\n" + "=" * 60)
-    print("Evaluating on test set...")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("PHASE 4: Extracting Features from ALL audio files")
+    print("=" * 70)
     
-    # Load best model
-    model.load_weights(model_path)
+    print("\nExtracting features with augmentation...")
+    X_all, y_all_processed = prepare_dataset(X_all_paths, y_all, augment=DATA_AUGMENTATION)
+    verify_features(X_all, y_all_processed, "COMBINED_DATASET")
     
-    # Make predictions
-    y_pred_prob = model.predict(X_test)
-    y_pred = (y_pred_prob > 0.5).astype("int32")
+    # =============================
+    # PHASE 5: K-Fold Cross Validation
+    # =============================
+    print("\n" + "=" * 70)
+    print(f"PHASE 5: K-Fold Cross Validation ({N_FOLDS} folds)")
+    print("=" * 70)
     
-    # Classification report
-    print("\nClassification Report:")
-    print(classification_report(y_test, y_pred, target_names=['Healthy', 'Parkinson']))
+    # Initialize K-Fold
+    kfold = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=42)
     
-    # Confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
+    # Store results for each fold
+    fold_results = []
+    all_histories = []
     
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=['Healthy', 'Parkinson'], 
-                yticklabels=['Healthy', 'Parkinson'],
-                cbar_kws={'label': 'Count'})
-    plt.title('Confusion Matrix', fontsize=16, fontweight='bold')
-    plt.xlabel('Predicted', fontsize=12)
-    plt.ylabel('Actual', fontsize=12)
-    plt.tight_layout()
-    plt.savefig(f'results/confusion_matrix_combined_{timestamp}.png', dpi=300)
-    print(f"Confusion matrix saved to results/confusion_matrix_combined_{timestamp}.png")
-    plt.close()
-    
-    # ROC Curve
-    if len(np.unique(y_test)) == 2:
-        fpr, tpr, _ = roc_curve(y_test, y_pred_prob)
-        auc_score = roc_auc_score(y_test, y_pred_prob)
+    for fold_idx, (train_idx, val_idx) in enumerate(kfold.split(X_all, y_all_processed), 1):
+        print(f"\n{'='*70}")
+        print(f"FOLD {fold_idx}/{N_FOLDS}")
+        print(f"{'='*70}")
         
-        plt.figure(figsize=(8, 6))
-        plt.plot(fpr, tpr, linewidth=2, label=f'ROC Curve (AUC = {auc_score:.4f})')
-        plt.plot([0, 1], [0, 1], 'k--', linewidth=1, label='Random Classifier')
-        plt.xlabel('False Positive Rate', fontsize=12)
-        plt.ylabel('True Positive Rate', fontsize=12)
-        plt.title('ROC Curve', fontsize=16, fontweight='bold')
-        plt.legend(fontsize=10)
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.savefig(f'results/roc_curve_combined_{timestamp}.png', dpi=300)
-        print(f"ROC curve saved to results/roc_curve_combined_{timestamp}.png")
-        plt.close()
+        # Split data for this fold
+        X_train_fold = X_all[train_idx]
+        y_train_fold = y_all_processed[train_idx]
+        X_val_fold = X_all[val_idx]
+        y_val_fold = y_all_processed[val_idx]
+        
+        print(f"Training samples: {len(X_train_fold)}")
+        print(f"Validation samples: {len(X_val_fold)}")
+        
+        # Check distribution
+        unique_train, counts_train = np.unique(y_train_fold, return_counts=True)
+        unique_val, counts_val = np.unique(y_val_fold, return_counts=True)
+        print(f"\nTrain distribution:")
+        for label, count in zip(unique_train, counts_train):
+            print(f"  {'Healthy' if label == 0 else 'Parkinson'}: {count}")
+        print(f"Validation distribution:")
+        for label, count in zip(unique_val, counts_val):
+            print(f"  {'Healthy' if label == 0 else 'Parkinson'}: {count}")
+        
+        # Build model for this fold
+        input_shape = X_train_fold.shape[1:]
+        model = build_cnn_bilstm(input_shape, USE_REGULARIZATION, DROPOUT_RATE)
+        
+        # Setup callbacks for this fold
+        model_path = f"models/fold{fold_idx}_model_{timestamp}.h5"
+        
+        checkpoint = tf.keras.callbacks.ModelCheckpoint(
+            model_path,
+            monitor="val_accuracy",
+            save_best_only=True,
+            mode="max",
+            verbose=0
+        )
+        early_stopping = tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss",
+            patience=20,
+            restore_best_weights=True,
+            verbose=0
+        )
+        lr_schedule = tf.keras.callbacks.ReduceLROnPlateau(
+            monitor="val_loss",
+            factor=0.5,
+            patience=10,
+            min_lr=1e-7,
+            verbose=0
+        )
+        
+        # Train model for this fold
+        print(f"\nTraining Fold {fold_idx}...")
+        history = model.fit(
+            X_train_fold, y_train_fold,
+            validation_data=(X_val_fold, y_val_fold),
+            epochs=150,
+            batch_size=8,
+            callbacks=[checkpoint, early_stopping, lr_schedule],
+            verbose=2  # Less verbose output
+        )
+        
+        all_histories.append(history)
+        
+        # Detect overfitting for this fold
+        is_overfitting = detect_overfitting(history)
+        
+        # Evaluate on validation set
+        model.load_weights(model_path)
+        val_loss, val_acc, val_precision, val_recall, val_auc = model.evaluate(
+            X_val_fold, y_val_fold, verbose=0
+        )
+        val_f1 = 2 * (val_precision * val_recall) / (val_precision + val_recall + 1e-7)
+        
+        # Make predictions
+        y_val_pred_prob = model.predict(X_val_fold, verbose=0)
+        y_val_pred = (y_val_pred_prob > 0.5).astype("int32")
+        
+        # Store results
+        fold_result = {
+            'fold': fold_idx,
+            'val_loss': float(val_loss),
+            'val_accuracy': float(val_acc),
+            'val_precision': float(val_precision),
+            'val_recall': float(val_recall),
+            'val_f1_score': float(val_f1),
+            'val_auc': float(val_auc),
+            'overfitting_detected': is_overfitting,
+            'model_path': model_path
+        }
+        fold_results.append(fold_result)
+        
+        print(f"\n{'='*70}")
+        print(f"Fold {fold_idx} Results:")
+        print(f"{'='*70}")
+        print(f"  Validation Loss: {val_loss:.4f}")
+        print(f"  Validation Accuracy: {val_acc:.4f} ({val_acc*100:.2f}%)")
+        print(f"  Validation Precision: {val_precision:.4f}")
+        print(f"  Validation Recall: {val_recall:.4f}")
+        print(f"  Validation F1-Score: {val_f1:.4f}")
+        print(f"  Validation AUC: {val_auc:.4f}")
+        print(f"  Overfitting: {'⚠️ Yes' if is_overfitting else '✓ No'}")
+        print(f"  Model saved: {model_path}")
+        
+        # Classification report for this fold
+        print(f"\nClassification Report (Fold {fold_idx}):")
+        print(classification_report(y_val_fold, y_val_pred, 
+                                   target_names=['Healthy', 'Parkinson']))
     
-    # Test metrics
-    test_loss, test_acc, test_precision, test_recall, test_auc = model.evaluate(X_test, y_test, verbose=0)
-    f1_score = 2 * (test_precision * test_recall) / (test_precision + test_recall + 1e-7)
+    # =============================
+    # PHASE 6: Aggregate K-Fold Results
+    # =============================
+    print("\n" + "=" * 70)
+    print("PHASE 6: K-Fold Cross Validation Summary")
+    print("=" * 70)
     
-    print(f"\n{'='*60}")
-    print(f"Final Test Results:")
-    print(f"{'='*60}")
-    print(f"  Loss: {test_loss:.4f}")
-    print(f"  Accuracy: {test_acc:.4f} ({test_acc*100:.2f}%)")
-    print(f"  Precision: {test_precision:.4f}")
-    print(f"  Recall: {test_recall:.4f}")
-    print(f"  F1-Score: {f1_score:.4f}")
-    print(f"  AUC: {test_auc:.4f}")
+    # Calculate mean and std for each metric
+    metrics = ['val_accuracy', 'val_precision', 'val_recall', 'val_f1_score', 'val_auc', 'val_loss']
+    metric_names = ['Accuracy', 'Precision', 'Recall', 'F1-Score', 'AUC', 'Loss']
     
-    # Save metrics to JSON
-    metrics = {
+    print("\nCross-Validation Results:")
+    print("-" * 70)
+    for metric, name in zip(metrics, metric_names):
+        values = [r[metric] for r in fold_results]
+        mean_val = np.mean(values)
+        std_val = np.std(values)
+        print(f"  {name:12s}: {mean_val:.4f} ± {std_val:.4f}")
+    
+    print("\nPer-Fold Results:")
+    print("-" * 70)
+    for result in fold_results:
+        print(f"  Fold {result['fold']}: Acc={result['val_accuracy']:.4f}, " +
+              f"Prec={result['val_precision']:.4f}, Rec={result['val_recall']:.4f}, " +
+              f"F1={result['val_f1_score']:.4f}, AUC={result['val_auc']:.4f}")
+    
+    # Save K-Fold results to JSON
+    kfold_summary = {
         'timestamp': timestamp,
-        'test_loss': float(test_loss),
-        'test_accuracy': float(test_acc),
-        'test_precision': float(test_precision),
-        'test_recall': float(test_recall),
-        'test_f1_score': float(f1_score),
-        'test_auc': float(test_auc),
-        'overfitting_detected': is_overfitting,
+        'n_folds': N_FOLDS,
+        'total_samples': len(X_all),
+        'min_duration': MIN_DURATION,
+        'fold_results': fold_results,
+        'mean_metrics': {
+            metric: float(np.mean([r[metric] for r in fold_results]))
+            for metric in metrics
+        },
+        'std_metrics': {
+            metric: float(np.std([r[metric] for r in fold_results]))
+            for metric in metrics
+        },
         'configuration': {
             'use_regularization': USE_REGULARIZATION,
             'l2_reg': L2_REG,
             'dropout_rate': DROPOUT_RATE,
             'data_augmentation': DATA_AUGMENTATION,
             'sample_rate': SAMPLE_RATE,
-            'duration': DURATION
+            'duration': DURATION,
+            'min_duration': MIN_DURATION
         }
     }
     
-    with open(f'results/metrics_combined_{timestamp}.json', 'w') as f:
-        json.dump(metrics, f, indent=4)
-    print(f"\nMetrics saved to results/metrics_combined_{timestamp}.json")
+    results_file = f'results/kfold_results_{timestamp}.json'
+    with open(results_file, 'w') as f:
+        json.dump(kfold_summary, f, indent=4)
+    print(f"\n✓ K-Fold results saved to: {results_file}")
     
-    print("\n" + "=" * 60)
-    print(f"Training complete! Best model saved to: {model_path}")
-    if is_overfitting:
-        print("⚠️  Note: Overfitting was detected. Consider retraining with more regularization.")
-    print("=" * 60)
+    # =============================
+    # PHASE 7: Visualize K-Fold Results
+    # =============================
+    print("\n" + "=" * 70)
+    print("PHASE 7: Generating Visualizations")
+    print("=" * 70)
+    
+    # Plot metrics across folds
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    fig.suptitle(f'{N_FOLDS}-Fold Cross Validation Results', fontsize=16, fontweight='bold')
+    
+    metrics_to_plot = [
+        ('val_accuracy', 'Accuracy'),
+        ('val_precision', 'Precision'),
+        ('val_recall', 'Recall'),
+        ('val_f1_score', 'F1-Score'),
+        ('val_auc', 'AUC'),
+        ('val_loss', 'Loss')
+    ]
+    
+    for idx, (metric, name) in enumerate(metrics_to_plot):
+        ax = axes[idx // 3, idx % 3]
+        values = [r[metric] for r in fold_results]
+        folds = [r['fold'] for r in fold_results]
+        
+        ax.bar(folds, values, color='steelblue', alpha=0.7)
+        ax.axhline(y=np.mean(values), color='red', linestyle='--', 
+                   label=f'Mean: {np.mean(values):.4f}')
+        ax.set_xlabel('Fold')
+        ax.set_ylabel(name)
+        ax.set_title(f'{name} per Fold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.set_xticks(folds)
+    
+    plt.tight_layout()
+    viz_file = f'results/kfold_metrics_{timestamp}.png'
+    plt.savefig(viz_file, dpi=300, bbox_inches='tight')
+    print(f"✓ K-Fold metrics visualization saved to: {viz_file}")
+    plt.close()
+    
+    print("\n" + "=" * 70)
+    print("✅ K-Fold Cross Validation Complete!")
+    print("=" * 70)
+    print(f"\nBest Fold: Fold {max(fold_results, key=lambda x: x['val_accuracy'])['fold']}")
+    print(f"Best Validation Accuracy: {max(r['val_accuracy'] for r in fold_results):.4f}")
+    print(f"\nAll fold models saved in models/ directory")
+    print(f"Results and visualizations saved in results/ directory")
+    print("=" * 70)
 
 if __name__ == "__main__":
     main()
