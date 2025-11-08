@@ -1,5 +1,29 @@
 [
   {
+    "id": "VPX-20251108171903",
+    "date": "2025-11-08T17:19:03.749975",
+    "risk_score": 0.9930660724639893,
+    "confidence": 0.9861321449279785,
+    "risk_level": "High",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "DL1.wav",
+    "ai_summary": "I've reviewed your voice analysis and noticed some continued irregularities in your voice stability, but it looks like there's been some improvement since your earlier tests.  It might be helpful to share these results with a healthcare professional for further evaluation, and consistently monitoring will help us understand any patterns.\n",
+    "progress_analysis": "The analysis reveals a concerning trend of worsening voice health, indicated by a recent high risk score of 0.993 and a worsening trend magnitude of 78.6. While your consistency in taking tests is excellent, the consistently high risk levels suggest a need for proactive steps. Consider consulting with a voice specialist or ENT doctor to discuss these results and explore personalized strategies to improve your voice health. Remember that early intervention can make a significant difference, and taking action now is a positive step toward preserving your vocal well-being.\n",
+    "trend": "worsening"
+  },
+  {
+    "id": "VPX-20251108171733",
+    "date": "2025-11-08T17:17:33.432489",
+    "risk_score": 0.9925382733345032,
+    "confidence": 0.9850765466690063,
+    "risk_level": "High",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "DL4.wav",
+    "ai_summary": "I noticed some changes in your voice patterns that could be related to your neurological health, but it's not a diagnosis. I also see an improving trend from previous tests, which is great. I recommend sharing these results with your doctor for a more complete picture.\n",
+    "progress_analysis": "The recent voice health screenings indicate a concerning worsening trend, with the risk score remaining high at 0.993 despite a previous low score of 0.134 earlier today. This rapid change of 77.4% suggests exploring potential triggers or behaviors impacting voice health. Given the excellent test consistency, consider logging vocal activities or environmental factors alongside future screenings to identify contributing elements. Maintaining regular monitoring and consulting with a voice health professional can help develop strategies to stabilize and improve your voice health.\n",
+    "trend": "worsening"
+  },
+  {
     "id": "VPX-20251108171615",
     "date": "2025-11-08T17:16:15.640318",
     "risk_score": 0.9940251708030701,
