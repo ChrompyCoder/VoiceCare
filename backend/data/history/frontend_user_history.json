@@ -1,5 +1,26 @@
 [
   {
+    "id": "VPX-20251108213557",
+    "date": "2025-11-08T21:35:57.337460",
+    "risk_score": 0.19927877187728882,
+    "confidence": 0.6014424562454224,
+    "risk_level": "Low",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "recording.wav",
+    "stability_metrics": {
+      "stability_index": 0.10855212062597275,
+      "jitter": 1.0,
+      "shimmer": 1.0,
+      "hnr": 16.282817840576172,
+      "pitch_variation": 100.0,
+      "energy_variation": 100.0,
+      "interpretation": "Voice instability detected - consultation recommended"
+    },
+    "ai_summary": "Your voice analysis is complete. Please consult with a healthcare professional for detailed interpretation.",
+    "progress_analysis": "The voice health screening shows a generally stable trend, which is good news. We can see the risk score recently decreased from 0.762 to 0.199, indicating improvement, although there have been some fluctuations between low and high. To maintain this stability, consider consistent voice rest and hydration habits. With \"excellent\" consistency in testing and a total of 11 tests to date, continued monitoring will help solidify positive results and catch any changes early.\n",
+    "trend": "stable"
+  },
+  {
     "id": "VPX-20251108212728",
     "date": "2025-11-08T21:27:28.691170",
     "risk_score": 0.7621326446533203,
