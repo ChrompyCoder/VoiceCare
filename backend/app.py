@@ -86,6 +86,7 @@ def predict():
             'risk_level': test_result['risk_level'],
             'voice_stability_index': stability_metrics.get('stability_index', 0.85),
             'gemini_summary': test_result.get('ai_summary', ''),
+            'progress_analysis': test_result.get('progress_analysis', ''),
             'ai_findings': ai_findings,
             'acoustic_features': {
                 'jitter': stability_metrics.get('jitter', 0),

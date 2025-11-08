@@ -14,6 +14,7 @@ export interface VoiceTest {
   risk_level: 'Low' | 'Moderate' | 'High';
   voice_stability_index: number;
   gemini_summary: string;
+  progress_analysis?: string;
   ai_findings: string[];
   acoustic_features?: AcousticFeatures;
 }
@@ -22,6 +23,7 @@ export interface AnalysisResult {
   risk_score: number;
   confidence: number;
   gemini_summary: string;
+  progress_analysis?: string;
   voice_stability_index: number;
   ai_findings: string[];
   acoustic_features?: AcousticFeatures;

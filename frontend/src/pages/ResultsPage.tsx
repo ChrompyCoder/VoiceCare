@@ -76,7 +76,7 @@ export const ResultsPage: React.FC = () => {
       // AI Summary
       pdf.setFontSize(14);
       pdf.setTextColor(38, 50, 56);
-      pdf.text('AI Analysis Summary', 15, yPosition);
+      pdf.text('AI Summary', 15, yPosition);
       yPosition += 8;
       
       pdf.setFontSize(10);
@@ -84,6 +84,25 @@ export const ResultsPage: React.FC = () => {
       const summaryLines = pdf.splitTextToSize(latestTest.gemini_summary || 'No summary available', pageWidth - 30);
       pdf.text(summaryLines, 15, yPosition);
       yPosition += summaryLines.length * 5 + 10;
+
+      // Progress Analysis (if available)
+      if (latestTest.progress_analysis) {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        pdf.setFontSize(14);
+        pdf.setTextColor(38, 50, 56);
+        pdf.text('Progress Analysis', 15, yPosition);
+        yPosition += 8;
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(84, 110, 122);
+        const progressLines = pdf.splitTextToSize(latestTest.progress_analysis, pageWidth - 30);
+        pdf.text(progressLines, 15, yPosition);
+        yPosition += progressLines.length * 5 + 10;
+      }
 
       // Acoustic Features Section
       if (latestTest.acoustic_features) {
@@ -240,7 +259,10 @@ export const ResultsPage: React.FC = () => {
           </div>
         </Card>
 
-        <GeminiInsight summary={latestTest.gemini_summary} />
+        <GeminiInsight 
+          summary={latestTest.gemini_summary} 
+          progressAnalysis={latestTest.progress_analysis}
+        />
 
         {tests.length > 1 && (
           <div ref={chartRef}>

@@ -185,55 +185,38 @@ Key Guidelines:
     
     def _create_prompt(self, context, include_history):
         """
-        Create Gemini prompt from context with history awareness
+        Create simplified Gemini prompt focused on empathy
         
         Returns:
             str: Formatted prompt
         """
-        # Extract key information for structured prompt
         risk_score = context.get('risk_score', 0)
         risk_level = context.get('risk_level', 'unknown')
         
-        # Build prompt sections
-        prompt_parts = [
-            f"Voice Analysis Results:",
-            f"- Risk Score: {risk_score:.1%}",
-            f"- Risk Level: {risk_level.upper()}"
-        ]
+        # Simple, clear prompt
+        prompt = f"""You are a compassionate healthcare assistant providing voice screening results.
+
+Voice Screening Results:
+Risk Score: {risk_score:.1%} ({risk_level.upper()} risk)
+"""
         
-        # Add acoustic features if available
-        if 'acoustic_features' in context:
-            prompt_parts.append("\nVoice Quality Indicators:")
-            for feature in context['acoustic_features']:
-                prompt_parts.append(f"- {feature}")
-        
-        # Add trend information if available
-        if 'historical_trend' in context and context['historical_trend']['direction'] != 'insufficient_data':
-            trend_info = context['historical_trend']
-            direction = trend_info['direction'].upper()
+        # Add trend if available
+        trend_info = context.get('trend_info')
+        if trend_info:
+            direction = trend_info['direction']
             change = trend_info['change_percent']
-            prompt_parts.append(f"\nTrend: {direction} ({change:+.1f}% over last {trend_info['num_tests']} tests)")
+            prompt += f"Trend: Your scores are {direction} ({change:.1f}% change)\n"
         
-        base_prompt = "\n".join(prompt_parts)
-        base_prompt += """
+        prompt += """
+Please provide a warm, supportive summary (2-3 sentences) that:
+1. Explains what this risk score means in simple, everyday language
+2. If the risk is elevated, gently encourages seeing a doctor
+3. If scores are improving or stable, celebrates that progress
+4. Avoids medical jargon - speak like a caring friend, not a doctor
 
-Task: As a caring telemedicine assistant, explain these results to help the user understand their voice health.
-
-Your Response Should:
-- Use warm, supportive language (2-3 sentences maximum)
-- Highlight any positive trends or stability
-- If acoustic indicators show concerns, explain them gently
-- Suggest practical next steps (consultation if elevated risk, keep monitoring if stable)
-- Avoid medical diagnoses - focus on observations only
-- Be encouraging while remaining factual
-"""
+Keep your response brief, empathetic, and reassuring."""
         
-        if include_history:
-            base_prompt += """
-Additional Context: Compare this test with previous results to identify patterns. Mention if this is an improvement or if consistency is observed.
-"""
-        
-        return base_prompt
+        return prompt
     
 
     

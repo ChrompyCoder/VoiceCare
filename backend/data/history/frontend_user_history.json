@@ -1,5 +1,47 @@
 [
   {
+    "id": "VPX-20251109032454",
+    "date": "2025-11-09T03:24:54.166815",
+    "risk_score": 0.19927877187728882,
+    "confidence": 0.6014424562454224,
+    "risk_level": "Low",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "recording.wav",
+    "stability_metrics": {
+      "stability_index": 0.10855212062597275,
+      "jitter": 1.0,
+      "shimmer": 1.0,
+      "hnr": 16.282817840576172,
+      "pitch_variation": 100.0,
+      "energy_variation": 100.0,
+      "interpretation": "Voice instability detected - consultation recommended"
+    },
+    "ai_summary": "Your voice screening results indicate a low risk score, which is wonderful news! This suggests that, based on the analysis of your voice patterns, there are no immediate areas of significant concern. It's also great to see your scores are stable, indicating consistency over time.\n",
+    "progress_analysis": "The recent shift to a low risk level is encouraging, as evidenced by the current risk score of 0.199 compared to the high risk score of 0.762 just minutes prior. While the overall trend is stable according to our analysis, the recent fluctuations between high and low risk warrant attention; maintaining excellent consistency in testing allows us to closely monitor these changes. To ensure continued voice health, focus on maintaining any lifestyle or behavioral adjustments made that might have contributed to the lower risk score, and consider logging potential triggers for high-risk results for discussion with a healthcare professional. Keep up the consistent testing schedule!\n",
+    "trend": "stable"
+  },
+  {
+    "id": "VPX-20251109031846",
+    "date": "2025-11-09T03:18:46.212869",
+    "risk_score": 0.7621326446533203,
+    "confidence": 0.5242652893066406,
+    "risk_level": "High",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "recording.wav",
+    "stability_metrics": {
+      "stability_index": 0.2903253852517003,
+      "jitter": 0.9414383769035339,
+      "shimmer": 0.9886097311973572,
+      "hnr": 25.947628021240234,
+      "pitch_variation": 33.43118037180142,
+      "energy_variation": 100.0,
+      "interpretation": "Voice instability detected - consultation recommended"
+    },
+    "ai_summary": "Your voice analysis is complete. Please consult with a healthcare professional for detailed interpretation.",
+    "progress_analysis": "The current voice health screening results show a concerning high risk score of 0.762. Although past tests have shown both low and high risk scores on the same day, the overall trend is worsening, with an increase of 0.047. Given this pattern, it would be beneficial to consult with a healthcare professional to explore possible causes and preventative strategies; focusing on maintaining voice health is important. Continuing consistent voice monitoring is also recommended to track any further changes.\n",
+    "trend": "worsening"
+  },
+  {
     "id": "VPX-20251108213557",
     "date": "2025-11-08T21:35:57.337460",
     "risk_score": 0.19927877187728882,
