@@ -1,0 +1,18 @@
+{
+    "timestamp": "20251108_124807",
+    "test_loss": 1.351943850517273,
+    "test_accuracy": 0.5102040767669678,
+    "test_precision": 0.0,
+    "test_recall": 0.0,
+    "test_f1_score": 0.0,
+    "test_auc": 0.7666666507720947,
+    "overfitting_detected": false,
+    "configuration": {
+        "use_regularization": true,
+        "l2_reg": 0.001,
+        "dropout_rate": 0.5,
+        "data_augmentation": true,
+        "sample_rate": 22050,
+        "duration": 5
+    }
+}
