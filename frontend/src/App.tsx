@@ -5,6 +5,7 @@ import { RecordPage } from './pages/RecordPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ReportPage } from './pages/ReportPage';
+import { ChatWidget } from './components/ChatWidget';
 
 function AppContent() {
   const { currentPage } = useApp();
@@ -28,7 +29,11 @@ function AppContent() {
     }
   };
 
-  return <>{renderPage()}</>;
+  return <>
+    {renderPage()}
+    {/* Floating Chatbot */}
+    <ChatWidget apiBase={'http://localhost:5000'} />
+  </>;
 }
 
 function App() {

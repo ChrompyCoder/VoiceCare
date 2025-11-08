@@ -92,6 +92,69 @@ Key Guidelines:
                 'timestamp': datetime.now().isoformat(),
                 'error': str(e)
             }
+
+    # --- New general chat & feature explanation helpers ---
+    def explain_feature(self, feature_name: str):
+        """Generate a simple, patient-friendly explanation of an acoustic/OpenSMILE feature.
+
+        Args:
+            feature_name: Raw feature string from OpenSMILE / preprocessing
+        Returns:
+            dict with 'text' explanation
+        """
+        if not feature_name:
+            return {'text': 'Please provide a feature name to explain.'}
+        prompt = f"""
+You are a friendly clinical screening assistant.
+Explain the voice analysis feature name below for a non-technical user:
+
+Feature: "{feature_name}"
+
+Provide:
+1. What it measures (plain everyday language)
+2. Why it matters for voice or neurological screening
+3. What unusual values could mean (very briefly)
+
+Format: 2-3 short sentences. Avoid jargon. Don't give a diagnosis. If the feature is obscure, say it's a technical spectral pattern and reassure user it's part of internal analysis.
+"""
+        try:
+            resp = self.client.models.generate_content(
+                model=self.model_name,
+                contents=f"{self.system_prompt}\n\n{prompt}"
+            )
+            text = resp.text if hasattr(resp, 'text') else str(resp)
+            return {'text': text.strip()}
+        except Exception as e:
+            print(f"⚠️ Gemini feature explanation error: {e}")
+            return {'text': 'Unable to explain this feature right now.'}
+
+    def chat(self, messages):
+        """Lightweight multi-turn chat. `messages` is a list of {'role': 'user'|'assistant', 'content': str}.
+        We collapse recent turns into a concise context and ask Gemini to reply empathetically.
+        """
+        if not messages:
+            return {'text': 'Hi! Ask me about any voice feature or your results.'}
+        # Keep last 8 messages
+        recent = messages[-8:]
+        # Build transcript
+        transcript = "\n".join([f"{m['role']}: {m['content']}" for m in recent])
+        prompt = f"""
+You are an empathetic assistant helping a user understand voice screening features and results.
+Conversation so far:
+{transcript}
+
+Respond to the last user message with a concise (<= 3 sentences) friendly explanation. If they ask about a feature name, explain it similarly to the feature explanation guidelines. Avoid medical diagnosis claims.
+"""
+        try:
+            resp = self.client.models.generate_content(
+                model=self.model_name,
+                contents=f"{self.system_prompt}\n\n{prompt}"
+            )
+            text = resp.text if hasattr(resp, 'text') else str(resp)
+            return {'text': text.strip()}
+        except Exception as e:
+            print(f"⚠️ Gemini chat error: {e}")
+            return {'text': 'I had trouble responding. Please try again shortly.'}
     
     def _build_context(self, result_context, include_history, test_history, stability_metrics):
         """

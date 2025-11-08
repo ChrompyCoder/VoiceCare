@@ -5,6 +5,7 @@ from pathlib import Path
 import werkzeug
 
 from agentic_ai.production_inference import ProductionInference
+from agentic_ai.gemini_interface import GeminiInterface
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -19,6 +20,13 @@ try:
 except Exception as e:
     print(f"FATAL: Could not initialize ProductionInference: {e}")
     inference_engine = None
+
+# Separate lightweight Gemini interface for chat (avoid re-running heavy pipeline)
+try:
+    gemini_chat = GeminiInterface()
+except Exception as e:
+    print(f"⚠️ Gemini chat interface init failed: {e}")
+    gemini_chat = None
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -104,6 +112,42 @@ def predict():
         print(f"An error occurred during prediction: {e}")
         # Consider more specific error handling here
         return jsonify({"error": "An internal error occurred during analysis."}), 500
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """Gemini-powered chatbot endpoint.
+    Expects JSON: { message: str, conversation?: [{role, content}], feature_name?: str }
+    Returns: { reply: str }
+    """
+    if gemini_chat is None:
+        return jsonify({'error': 'Chat interface unavailable'}), 500
+    data = request.get_json(silent=True) or {}
+    message = (data.get('message') or '').strip()
+    feature_name = (data.get('feature_name') or '').strip()
+    conversation = data.get('conversation') or []
+
+    if feature_name and not message:
+        # Direct feature explanation
+        result = gemini_chat.explain_feature(feature_name)
+        return jsonify({'reply': result['text']})
+
+    # If user explicitly asks "what is" followed by feature-like token, attempt feature extraction
+    if message.lower().startswith('what is') and len(message.split()) <= 12 and not feature_name:
+        # crude heuristic: last word(s)
+        candidate = message[7:].strip().strip('?')
+        if candidate:
+            feature_name = candidate
+            result = gemini_chat.explain_feature(feature_name)
+            return jsonify({'reply': result['text'], 'interpreted_feature': feature_name})
+
+    # Generic multi-turn chat
+    if message:
+        # Append current user message to conversation
+        conversation.append({'role': 'user', 'content': message})
+        result = gemini_chat.chat(conversation)
+        return jsonify({'reply': result['text']})
+    else:
+        return jsonify({'reply': 'Hi! Ask me about any voice feature or your results.'})
 
 if __name__ == '__main__':
     # Running on 0.0.0.0 makes it accessible from your local network
