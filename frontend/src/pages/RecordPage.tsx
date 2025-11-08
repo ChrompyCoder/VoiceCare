@@ -1,17 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, ArrowLeft, Loader } from 'lucide-react';
+import { Mic, ArrowLeft, Loader, Upload, Square } from 'lucide-react';
 import { Button } from '../components/Button';
 import { useApp } from '../context/AppContext';
 import { analyzeVoice, getRiskLevel } from '../utils/api';
 
 export const RecordPage: React.FC = () => {
   const { setCurrentPage, addTest } = useApp();
+  const [recordingMode, setRecordingMode] = useState<'upload' | 'live'>('live');
   const [isRecording, setIsRecording] = useState(false);
   const [timer, setTimer] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -65,6 +69,7 @@ export const RecordPage: React.FC = () => {
   const handleAnalysis = async (audioBlob: Blob) => {
     setIsAnalyzing(true);
     setProgress(0);
+    setError(null);
 
     const progressInterval = setInterval(() => {
       setProgress(prev => {
@@ -77,7 +82,8 @@ export const RecordPage: React.FC = () => {
     }, 200);
 
     try {
-      const result = await analyzeVoice(audioBlob);
+      const audioFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+      const result = await analyzeVoice(audioFile);
       clearInterval(progressInterval);
       setProgress(100);
 
@@ -98,11 +104,36 @@ export const RecordPage: React.FC = () => {
       setTimeout(() => {
         setCurrentPage('results');
       }, 500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis error:', error);
+      clearInterval(progressInterval);
+      setError(error.message || 'Analysis failed. Please try again.');
       setIsAnalyzing(false);
-      alert('Analysis failed. Please try again.');
     }
+  };
+
+  // File upload handler
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.includes('audio')) {
+        setError('Please select an audio file');
+        return;
+      }
+      setSelectedFile(file);
+      setError(null);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const audioBlob = new Blob([e.target?.result as ArrayBuffer], { type: selectedFile.type });
+      await handleAnalysis(audioBlob);
+    };
+    reader.readAsArrayBuffer(selectedFile);
   };
 
   return (
@@ -117,20 +148,54 @@ export const RecordPage: React.FC = () => {
         </Button>
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
-        <div className="absolute inset-0 flex items-center justify-center">
-          {isRecording && (
-            <>
-              <div className="absolute w-64 h-64 bg-[#2E7D32] rounded-full opacity-20 animate-ping"></div>
-              <div className="absolute w-96 h-96 bg-[#4CAF50] rounded-full opacity-10 animate-ping" style={{ animationDelay: '0.5s' }}></div>
-              <div className="absolute w-[32rem] h-[32rem] bg-[#81C784] rounded-full opacity-5 animate-ping" style={{ animationDelay: '1s' }}></div>
-            </>
-          )}
+      {/* Mode Selection */}
+      <div className="px-6 pb-4">
+        <div className="max-w-md mx-auto flex gap-4">
+          <Button
+            onClick={() => {
+              setRecordingMode('live');
+              setSelectedFile(null);
+              setError(null);
+              setTimer(0);
+              setIsRecording(false);
+            }}
+            variant={recordingMode === 'live' ? 'primary' : 'outline'}
+            icon={<Mic className="w-5 h-5" />}
+            className="flex-1"
+          >
+            Live Recording
+          </Button>
+          <Button
+            onClick={() => {
+              setRecordingMode('upload');
+              setSelectedFile(null);
+              setError(null);
+              setTimer(0);
+              setIsRecording(false);
+            }}
+            variant={recordingMode === 'upload' ? 'primary' : 'outline'}
+            icon={<Upload className="w-5 h-5" />}
+            className="flex-1"
+          >
+            Upload File
+          </Button>
         </div>
+      </div>
 
-        <div className="relative z-10 max-w-md w-full text-center">
-          {!isAnalyzing ? (
-            <>
+      <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+        {recordingMode === 'live' && !isAnalyzing && (
+          <>
+            <div className="absolute inset-0 flex items-center justify-center">
+              {isRecording && (
+                <>
+                  <div className="absolute w-64 h-64 bg-[#2E7D32] rounded-full opacity-20 animate-ping"></div>
+                  <div className="absolute w-96 h-96 bg-[#4CAF50] rounded-full opacity-10 animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                  <div className="absolute w-[32rem] h-[32rem] bg-[#81C784] rounded-full opacity-5 animate-ping" style={{ animationDelay: '1s' }}></div>
+                </>
+              )}
+            </div>
+
+            <div className="relative z-10 max-w-md w-full text-center">
               <div className="mb-8">
                 <div className="text-6xl font-bold text-[#263238] mb-2">
                   {timer < 5 ? `0${timer}` : '05'} / 05
@@ -148,7 +213,11 @@ export const RecordPage: React.FC = () => {
                       : 'bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] hover:scale-110'
                   } ${timer >= 5 ? 'opacity-50' : ''}`}
                 >
-                  <Mic className="w-16 h-16 text-white" />
+                  {isRecording ? (
+                    <Square className="w-16 h-16 text-white" />
+                  ) : (
+                    <Mic className="w-16 h-16 text-white" />
+                  )}
                 </button>
               </div>
 
@@ -163,8 +232,51 @@ export const RecordPage: React.FC = () => {
                   "Today is a bright sunny day."
                 </p>
               </div>
-            </>
-          ) : (
+            </div>
+          </>
+        )}
+
+        {recordingMode === 'upload' && !isAnalyzing && (
+          <div className="relative z-10 max-w-md w-full">
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-2xl font-semibold text-[#263238] mb-6 text-center">
+                Upload Audio File
+              </h2>
+              <div
+                className="border-2 border-dashed border-[#4CAF50] rounded-lg p-8 text-center hover:bg-[#E8F5E9] transition-colors cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-12 h-12 text-[#4CAF50] mx-auto mb-4" />
+                <p className="text-[#263238] font-medium mb-2">
+                  {selectedFile ? selectedFile.name : 'Click to upload or drag and drop'}
+                </p>
+                <p className="text-[#546E7A] text-sm">
+                  Supported formats: WAV, MP3, M4A
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+
+              {selectedFile && (
+                <Button
+                  onClick={handleFileUpload}
+                  disabled={isAnalyzing}
+                  className="w-full mt-6"
+                >
+                  Analyze Voice
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isAnalyzing && (
+          <div className="relative z-10 max-w-md w-full">
             <div className="bg-white rounded-2xl shadow-2xl p-8">
               <div className="mb-6">
                 <Loader className="w-16 h-16 text-[#2E7D32] mx-auto animate-spin" />
@@ -182,8 +294,16 @@ export const RecordPage: React.FC = () => {
                 Extracting acoustic biomarkers...
               </p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="relative z-10 max-w-md w-full mt-4">
+            <div className="bg-red-50 border-2 border-red-300 rounded-2xl shadow-lg p-6">
+              <p className="text-red-600 text-center">{error}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

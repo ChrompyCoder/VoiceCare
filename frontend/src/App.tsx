@@ -1,7 +1,7 @@
 import { AppProvider, useApp } from './context/AppContext';
 import { SplashPage } from './pages/SplashPage';
 import { HomePage } from './pages/HomePage';
-import { UploadPage } from './pages/UploadPage';
+import { RecordPage } from './pages/RecordPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ReportPage } from './pages/ReportPage';
@@ -16,7 +16,7 @@ function AppContent() {
       case 'home':
         return <HomePage />;
       case 'record':
-        return <UploadPage />;
+        return <RecordPage />;
       case 'results':
         return <ResultsPage />;
       case 'history':

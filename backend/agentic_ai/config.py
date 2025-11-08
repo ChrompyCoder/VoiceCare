@@ -7,7 +7,7 @@ from pathlib import Path
 # Base paths
 BASE_DIR = Path(__file__).parent.parent
 AGENTIC_DIR = Path(__file__).parent
-MODELS_DIR = BASE_DIR / 'models'
+MODELS_DIR = BASE_DIR.parent / 'opxgboost' / 'models'  # Use opxgboost models
 REPORTS_DIR = BASE_DIR / 'reports'
 SHAP_DIR = REPORTS_DIR / 'shap'
 
@@ -15,9 +15,9 @@ SHAP_DIR = REPORTS_DIR / 'shap'
 REPORTS_DIR.mkdir(exist_ok=True)
 SHAP_DIR.mkdir(exist_ok=True)
 
-# Model paths - Using OpenSMILE + XGBoost (Best Accuracy: ~90%)
-PRIMARY_MODEL_PATH = MODELS_DIR / 'xgboost_opensmile_20251108_154914.json'
-SCALER_PATH = MODELS_DIR / 'scaler_20251108_154914.pkl'
+# Model paths - Using latest OpenSMILE + XGBoost from opxgboost (Best Accuracy: ~90%)
+PRIMARY_MODEL_PATH = MODELS_DIR / 'xgboost_model_20251108_185046.json'
+SCALER_PATH = MODELS_DIR / 'scaler_20251108_185046.pkl'
 
 
 # Gemini API Configuration

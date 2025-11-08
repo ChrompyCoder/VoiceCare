@@ -1,0 +1,131 @@
+{
+  "test_timestamp": "2025-11-08T18:53:04.500933",
+  "test_directory": "../../backend/test",
+  "model_used": "models/xgboost_model_20251108_185046.json",
+  "scaler_used": "models/scaler_20251108_185046.pkl",
+  "feature_set": "ComParE_2016",
+  "feature_type": "Temporal (Functionals)",
+  "summary": {
+    "total_files": 14,
+    "successful": 14,
+    "failed": 0,
+    "healthy": 10,
+    "parkinsons": 4
+  },
+  "file_list": [
+    "Distance.wav",
+    "Has_Parkinson_2 (1).wav",
+    "Near But Down.wav",
+    "Near But Up.wav",
+    "Olive Hotel LE Opera 2.wav",
+    "Phone.wav",
+    "has.wav",
+    "hasa.wav",
+    "hea.wav",
+    "healthy11.wav",
+    "healthy22.wav",
+    "sanj1.wav",
+    "sanj3.wav",
+    "testy.wav"
+  ],
+  "results": {
+    "Distance.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.7588475942611694,
+      "prob_parkinsons": 0.24115240573883057,
+      "confidence": 0.7588475942611694
+    },
+    "Has_Parkinson_2 (1).wav": {
+      "prediction": "Parkinson's Disease",
+      "class": 1,
+      "prob_healthy": 0.2378673553466797,
+      "prob_parkinsons": 0.7621326446533203,
+      "confidence": 0.7621326446533203
+    },
+    "Near But Down.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.8078780174255371,
+      "prob_parkinsons": 0.19212199747562408,
+      "confidence": 0.8078780174255371
+    },
+    "Near But Up.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.7844600081443787,
+      "prob_parkinsons": 0.21553997695446014,
+      "confidence": 0.7844600081443787
+    },
+    "Olive Hotel LE Opera 2.wav": {
+      "prediction": "Parkinson's Disease",
+      "class": 1,
+      "prob_healthy": 0.34430891275405884,
+      "prob_parkinsons": 0.6556910872459412,
+      "confidence": 0.6556910872459412
+    },
+    "Phone.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.9106951951980591,
+      "prob_parkinsons": 0.08930481970310211,
+      "confidence": 0.9106951951980591
+    },
+    "has.wav": {
+      "prediction": "Parkinson's Disease",
+      "class": 1,
+      "prob_healthy": 0.14573663473129272,
+      "prob_parkinsons": 0.8542633652687073,
+      "confidence": 0.8542633652687073
+    },
+    "hasa.wav": {
+      "prediction": "Parkinson's Disease",
+      "class": 1,
+      "prob_healthy": 0.16670596599578857,
+      "prob_parkinsons": 0.8332940340042114,
+      "confidence": 0.8332940340042114
+    },
+    "hea.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.8394619226455688,
+      "prob_parkinsons": 0.16053807735443115,
+      "confidence": 0.8394619226455688
+    },
+    "healthy11.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.8816499710083008,
+      "prob_parkinsons": 0.11835002154111862,
+      "confidence": 0.8816499710083008
+    },
+    "healthy22.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.509071946144104,
+      "prob_parkinsons": 0.4909280240535736,
+      "confidence": 0.509071946144104
+    },
+    "sanj1.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.8976950645446777,
+      "prob_parkinsons": 0.10230495035648346,
+      "confidence": 0.8976950645446777
+    },
+    "sanj3.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.8007212281227112,
+      "prob_parkinsons": 0.19927875697612762,
+      "confidence": 0.8007212281227112
+    },
+    "testy.wav": {
+      "prediction": "Healthy",
+      "class": 0,
+      "prob_healthy": 0.8873598575592041,
+      "prob_parkinsons": 0.11264015734195709,
+      "confidence": 0.8873598575592041
+    }
+  }
+}

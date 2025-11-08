@@ -6,6 +6,9 @@ Uses OpenSMILE + XGBoost Model (Best Accuracy: ~90%)
 import sys
 import numpy as np
 import librosa
+import noisereduce as nr
+import soundfile as sf
+import tempfile
 import opensmile
 import xgboost as xgb
 import joblib
@@ -21,6 +24,7 @@ from .gemini_interface import GeminiInterface
 from .gemini_context import GeminiContextEngine
 from .history_manager import HistoryManager
 from .report_generator import ReportGenerator
+from .shap_xgboost import XGBoostShapExplainer
 
 
 class ProductionInference:
@@ -76,22 +80,59 @@ class ProductionInference:
         )
         print("✅ OpenSMILE initialized with ComParE_2016 feature set")
         
-    def preprocess_audio(self, audio_path):
+        # Initialize SHAP explainer - delay until first prediction
+        self.shap_explainer = None
+        print("✅ SHAP explainer will be initialized on first prediction")
+        
+    def denoise_audio(self, audio_path):
         """
-        Preprocess audio file to model input format using OpenSMILE
+        Denoise audio file and return path to denoised version
         
         Args:
             audio_path: Path to audio file
+            
+        Returns:
+            str: Path to denoised audio file
+        """
+        try:
+            # Load audio
+            y, sr = librosa.load(audio_path, sr=None)
+            
+            # Apply noise reduction
+            y_denoised = nr.reduce_noise(y=y, sr=sr, stationary=False, prop_decrease=0.8)
+            
+            # Save to temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+            sf.write(temp_file.name, y_denoised, sr)
+            
+            return temp_file.name
+        except Exception as e:
+            print(f"   ⚠️ Denoising failed, using original audio: {e}")
+            return audio_path
+    
+    def preprocess_audio(self, audio_path, denoise=True):
+        """
+        Preprocess audio file to model input format using OpenSMILE with optional denoising
+        
+        Args:
+            audio_path: Path to audio file
+            denoise: Whether to apply noise reduction (default: True)
             
         Returns:
             np.array: Preprocessed features ready for model
         """
         print(f"\n[3/5] Preprocessing audio: {Path(audio_path).name}")
         
+        audio_path_processed = audio_path
         try:
+            # Denoise audio if enabled
+            if denoise:
+                print("   Denoising audio...")
+                audio_path_processed = self.denoise_audio(audio_path)
+            
             # Extract features with OpenSMILE
             print("   Extracting OpenSMILE features (ComParE_2016)...")
-            features = self.smile.process_file(audio_path)
+            features = self.smile.process_file(audio_path_processed)
             
             # Drop non-numeric columns if any
             features = features.select_dtypes(include=np.number)
@@ -105,6 +146,14 @@ class ProductionInference:
         except Exception as e:
             print(f"❌ Error during audio preprocessing: {e}")
             raise
+        finally:
+            # Clean up temp file if denoising was used
+            if denoise and audio_path_processed != audio_path:
+                try:
+                    import os
+                    os.unlink(audio_path_processed)
+                except:
+                    pass
 
     def predict(self, audio_features):
         """
@@ -169,6 +218,40 @@ class ProductionInference:
         # Predict
         prediction = self.predict(audio_features)
         
+        # Initialize SHAP explainer on first prediction if not already done
+        if self.shap_explainer is None:
+            try:
+                print("🔧 Initializing SHAP explainer...")
+                self.shap_explainer = XGBoostShapExplainer(self.model)
+                print("✅ SHAP explainer initialized")
+            except Exception as e:
+                print(f"⚠️ SHAP initialization failed: {e}")
+        
+        # Generate test ID
+        test_id = f"VPX-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Generate SHAP explanation
+        print("\n💡 Generating SHAP explanation...")
+        if self.shap_explainer is not None:
+            try:
+                shap_summary = self.shap_explainer.explain_prediction(
+                    audio_features,
+                    save_path=config.SHAP_DIR / f'shap_{test_id}.png',
+                    return_base64=True
+                )
+            except Exception as e:
+                print(f"⚠️ SHAP explanation failed: {e}")
+                shap_summary = {
+                    'visualization_base64': None,
+                    'explanation': 'SHAP analysis unavailable for this prediction.'
+                }
+        else:
+            print("⚠️ SHAP explainer not initialized")
+            shap_summary = {
+                'visualization_base64': None,
+                'explanation': 'SHAP analysis unavailable for this prediction.'
+            }
+        
         # Get test history
         print("\n[5/5] Generating AI insights...")
         test_history = self.history_mgr.get_all_tests(limit=10)
@@ -176,13 +259,15 @@ class ProductionInference:
         
         # Create test result object
         test_result = {
-            'id': f"VPX-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            'id': test_id,
             'date': datetime.now().isoformat(),
             'risk_score': prediction['risk_score'],
             'confidence': prediction['confidence'],
             'risk_level': prediction['risk_level'],
             'model': prediction['model_name'],
-            'audio_file': str(Path(audio_path).name)
+            'audio_file': str(Path(audio_path).name),
+            'shap_image': shap_summary.get('visualization_base64'),
+            'shap_explanation': shap_summary.get('explanation')
         }
         
         # Generate Gemini summary
@@ -214,7 +299,7 @@ class ProductionInference:
             print("📄 Generating reports...")
             reports = self.report_gen.generate_full_report(
                 test_result,
-                shap_summary=None,  # SHAP for XGBoost requires different setup
+                shap_summary=self.shap_explainer.generate_summary_report(shap_summary),
                 gemini_summary=test_result['ai_summary'],
                 test_history=test_history,
                 format='both'
