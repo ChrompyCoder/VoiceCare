@@ -1,0 +1,40 @@
+{
+    "timestamp": "20251108_154914",
+    "feature_set": "ComParE_2016",
+    "test_size": 0.2,
+    "n_folds": 5,
+    "total_samples": 194,
+    "train_samples": 155,
+    "test_samples": 39,
+    "feature_dim": 6373,
+    "accuracy": 0.8717948717948718,
+    "precision": 0.8823529411764706,
+    "recall": 0.967741935483871,
+    "f1_score": 0.9230769230769231,
+    "auc_roc": 0.9435483870967742,
+    "cv_mean": 0.8580645161290322,
+    "cv_std": 0.09698900889272845,
+    "xgb_params": {
+        "max_depth": 6,
+        "learning_rate": 0.1,
+        "n_estimators": 200,
+        "objective": "binary:logistic",
+        "eval_metric": "logloss",
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "min_child_weight": 3,
+        "gamma": 0.1,
+        "reg_alpha": 0.1,
+        "reg_lambda": 1.0,
+        "random_state": 42,
+        "use_label_encoder": false,
+        "tree_method": "hist"
+    },
+    "dataset_info": {
+        "gitdata_original": 113,
+        "figdata_healthy": -72,
+        "figdata_parkinsons": 40,
+        "total_healthy": 41,
+        "total_parkinsons": 153
+    }
+}
