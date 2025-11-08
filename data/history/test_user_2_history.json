@@ -1,0 +1,38 @@
+[
+  {
+    "id": "VPX-20251108152510",
+    "date": "2025-11-08T15:25:10.243794",
+    "risk_score": 0.9994031190872192,
+    "confidence": 0.9988062381744385,
+    "risk_level": "High",
+    "model": "Fold3_CNN-BiLSTM",
+    "audio_file": "healthy22.wav",
+    "ai_summary": "I've noticed some changes in your voice patterns that suggest increased instability compared to your previous tests. Because the trend seems to be worsening, it would be a good idea to schedule a consultation with a neurologist for a thorough evaluation. They can provide personalized guidance and support.\n",
+    "progress_analysis": "The voice health screening results indicate a generally stable, but concerning trend. The latest result shows a high risk score of 0.999, contrasting with the average risk of 0.702 and a previous moderate score of 0.404 within the recent history. Given the consistency of testing and recent high risk, it's important to maintain diligence; consider consulting with a voice specialist for further evaluation. Consistent monitoring and professional guidance are key next steps for proactive management.\n",
+    "trend": "stable"
+  },
+  {
+    "id": "VPX-20251108152141",
+    "date": "2025-11-08T15:21:41.236200",
+    "risk_score": 0.4037555456161499,
+    "confidence": 0.1924889087677002,
+    "risk_level": "Moderate",
+    "model": "Fold3_CNN-BiLSTM",
+    "audio_file": "hea.wav",
+    "ai_summary": "From your voice analysis, some patterns have been observed and your risk level is moderate. I see that your previous score was higher, but more data is needed to establish a trend. It's a good idea to share these results with your doctor for a more complete picture of your health.\n",
+    "progress_analysis": "The latest voice health screening shows a decrease in risk score to 0.404 (\"Moderate\") compared to the previous score of 1.0 (\"High\"). While trend analysis is limited with only two data points, this initial decrease is encouraging. To establish a clearer trend and understand consistency, it's recommended to continue regular screenings, perhaps weekly for the next month, and maintain any voice care practices implemented since the last test. This will provide more data to track progress effectively.\n",
+    "trend": "insufficient_data"
+  },
+  {
+    "id": "VPX-20251108152122",
+    "date": "2025-11-08T15:21:22.892584",
+    "risk_score": 0.9998338222503662,
+    "confidence": 0.9996676445007324,
+    "risk_level": "High",
+    "model": "Fold3_CNN-BiLSTM",
+    "audio_file": "hasa.wav",
+    "ai_summary": "I've noticed some unusual patterns in your voice stability that might be worth exploring further. While this analysis isn't a diagnosis, the results suggest that it would be a good idea to schedule a consultation with a neurologist for a more in-depth assessment.\n",
+    "progress_analysis": "First test - baseline established",
+    "trend": "baseline"
+  }
+]

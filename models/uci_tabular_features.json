@@ -1,0 +1,30 @@
+{
+  "features": [
+    "AC",
+    "Degree of voice breaks",
+    "Fraction of locally unvoiced frames",
+    "HTN",
+    "Jitter (ddp)",
+    "Jitter (local)",
+    "Jitter (local, absolute)",
+    "Jitter (ppq5)",
+    "Jitter (rap)",
+    "Maximum pitch",
+    "Mean period",
+    "Mean pitch",
+    "Median pitch",
+    "Minimum pitch",
+    "NTH",
+    "Number of periods",
+    "Number of pulses",
+    "Number of voice breaks",
+    "Shimmer (apq11)",
+    "Shimmer (apq3)",
+    "Shimmer (apq5), ",
+    "Shimmer (dda)",
+    "Shimmer (local)",
+    "Shimmer (local, dB)",
+    "Standard deviation",
+    "Standard deviation of period"
+  ]
+}

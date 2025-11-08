@@ -1,19 +1,13 @@
 """
 Gemini Empathetic Interface
 Converts clinical results into user-friendly, empathetic language
+NO FALLBACKS - Requires valid API key
 """
 
-import os
 import json
 from datetime import datetime
 import config
-
-try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
-    print("Warning: google-generativeai not installed. Install with: pip install google-generativeai")
+import google.generativeai as genai
 
 
 class GeminiInterface:
@@ -26,12 +20,17 @@ class GeminiInterface:
         Initialize Gemini interface
         
         Args:
-            api_key: Gemini API key (defaults to config or env variable)
+            api_key: Gemini API key (defaults to config)
         """
-        if not GEMINI_AVAILABLE:
-            raise ImportError("google-generativeai package not installed")
-        
         self.api_key = api_key or config.GEMINI_API_KEY
+        
+        if not self.api_key or self.api_key == 'PASTE_YOUR_GEMINI_API_KEY_HERE':
+            raise ValueError(
+                "❌ GEMINI API KEY NOT SET!\n"
+                "Get your API key from: https://makersuite.google.com/app/apikey\n"
+                "Then update it in: agentic-ai/config.py (line 20)"
+            )
+        
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel(config.GEMINI_MODEL)
         self.system_prompt = config.GEMINI_SYSTEM_PROMPT
@@ -54,18 +53,13 @@ class GeminiInterface:
         # Create prompt
         prompt = self._create_prompt(context, include_history)
         
-        # Get Gemini response
-        try:
-            response = self.model.generate_content(
-                f"{self.system_prompt}\n\n{prompt}"
-            )
-            summary_text = response.text
-        except Exception as e:
-            print(f"Error generating Gemini response: {e}")
-            summary_text = self._fallback_summary(context)
+        # Get Gemini response (NO FALLBACK)
+        response = self.model.generate_content(
+            f"{self.system_prompt}\n\n{prompt}"
+        )
         
         return {
-            'summary': summary_text,
+            'summary': response.text,
             'context': context,
             'timestamp': datetime.now().isoformat()
         }
@@ -170,33 +164,7 @@ Guidelines:
         
         return base_prompt
     
-    def _fallback_summary(self, context):
-        """
-        Generate fallback summary if Gemini is unavailable
-        
-        Returns:
-            str: Basic summary
-        """
-        risk_level = context['risk_level']
-        risk_score = context['risk_score']
-        
-        if risk_level == 'Low':
-            return (
-                f"Your voice analysis shows a low risk score ({risk_score:.0%}). "
-                "Your voice patterns appear stable. Continue monitoring regularly for peace of mind."
-            )
-        elif risk_level == 'Moderate':
-            return (
-                f"Your voice analysis indicates a moderate risk score ({risk_score:.0%}). "
-                "Some minor irregularities were detected. Consider consulting a healthcare professional "
-                "for a thorough evaluation."
-            )
-        else:  # High
-            return (
-                f"Your voice analysis shows an elevated risk score ({risk_score:.0%}). "
-                "We recommend scheduling an appointment with a neurologist for a comprehensive assessment. "
-                "Early consultation can be very helpful."
-            )
+
     
     def generate_progress_summary(self, test_history):
         """
@@ -231,22 +199,10 @@ Guidelines:
 - Be empathetic and supportive
 """
         
-        try:
-            response = self.model.generate_content(
-                f"{self.system_prompt}\n\n{prompt}"
-            )
-            return response.text
-        except Exception as e:
-            print(f"Error generating progress summary: {e}")
-            
-            # Fallback
-            trend = context['trend']
-            if trend == 'improving':
-                return "Your recent tests show positive progress. Keep up the good work!"
-            elif trend == 'stable':
-                return "Your voice patterns have remained consistent. Continue regular monitoring."
-            else:
-                return "Your recent tests show some variation. Consider scheduling a consultation."
+        response = self.model.generate_content(
+            f"{self.system_prompt}\n\n{prompt}"
+        )
+        return response.text
 
 
 # Utility function
@@ -262,17 +218,6 @@ def generate_empathetic_response(result_dict, history=None, api_key=None):
     Returns:
         str: Empathetic summary text
     """
-    if not GEMINI_AVAILABLE:
-        print("Warning: Gemini not available, using fallback")
-        interface = type('obj', (object,), {
-            '_fallback_summary': lambda self, ctx: GeminiInterface._fallback_summary(None, ctx)
-        })()
-        context = {
-            'risk_level': result_dict.get('risk_level', 'Unknown'),
-            'risk_score': result_dict.get('risk_score', 0)
-        }
-        return interface._fallback_summary(context)
-    
     interface = GeminiInterface(api_key)
     result = interface.generate_summary(
         result_dict,

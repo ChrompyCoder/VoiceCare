@@ -10,6 +10,7 @@ import numpy as np
 import pickle
 import xgboost as xgb
 import librosa
+import noisereduce as nr
 import parselmouth
 from parselmouth.praat import call
 import pandas as pd
@@ -33,6 +34,10 @@ def extract_acoustic_features(audio_path):
     try:
         # Load audio with librosa
         y, sr = librosa.load(audio_path, sr=22050)
+        
+        # 🔇 DENOISE AUDIO (Critical for matching training data)
+        # Use gentler denoising to avoid over-processing
+        y = nr.reduce_noise(y=y, sr=sr, stationary=False, prop_decrease=0.8)
         
         features = {}
         

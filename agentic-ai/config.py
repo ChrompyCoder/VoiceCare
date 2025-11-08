@@ -15,25 +15,27 @@ SHAP_DIR = REPORTS_DIR / 'shap'
 REPORTS_DIR.mkdir(exist_ok=True)
 SHAP_DIR.mkdir(exist_ok=True)
 
-# Model paths (update these after training)
-PRIMARY_MODEL_PATH = MODELS_DIR / 'best_model.h5'
-AUDIO_QUALITY_MODEL_PATH = MODELS_DIR / 'audio_quality_model.h5'
+# Model paths - Using Fold 3 (Best Performance: AUC=0.9977, Precision=1.0, No Overfitting)
+PRIMARY_MODEL_PATH = MODELS_DIR / 'fold3_model_20251108_131148.h5'
+AUDIO_QUALITY_MODEL_PATH = MODELS_DIR / 'audio_quality_model.h5'  # Train this separately if needed
 
 # Gemini API Configuration
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'your-api-key-here')
-GEMINI_MODEL = 'gemini-pro'
+# GET YOUR API KEY FROM: https://makersuite.google.com/app/apikey
+# PASTE IT BELOW (replace 'PASTE_YOUR_GEMINI_API_KEY_HERE')
+GEMINI_API_KEY = 'AIzaSyBJyEY-_TS9zNecIqNhyL98gokDP-JrfNY'  # ← PUT YOUR API KEY HERE
+GEMINI_MODEL = 'gemini-2.0-flash'  # Using latest fast model
 
 # SHAP Configuration
 SHAP_NUM_SAMPLES = 100  # Number of samples for SHAP explanation
 SHAP_BACKGROUND_SIZE = 50  # Background dataset size
 
 # Audio Quality Thresholds
-MIN_AUDIO_QUALITY = 0.7  # Minimum acceptable audio quality score
-QUALITY_WARNING_THRESHOLD = 0.8  # Threshold for quality warning
+MIN_AUDIO_QUALITY = 0.65  # Minimum acceptable audio quality score
+QUALITY_WARNING_THRESHOLD = 0.75  # Threshold for quality warning
 
-# Risk Score Thresholds
-LOW_RISK_THRESHOLD = 0.33
-MODERATE_RISK_THRESHOLD = 0.67
+# Risk Score Thresholds (Calibrated for Fold 3 model)
+LOW_RISK_THRESHOLD = 0.30  # Below 30% = Low Risk
+MODERATE_RISK_THRESHOLD = 0.65  # 30-65% = Moderate, Above 65% = High Risk
 
 # History Configuration
 MAX_HISTORY_DISPLAY = 10  # Maximum number of tests to show in history

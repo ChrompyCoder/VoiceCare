@@ -1,17 +1,13 @@
 """
 Gemini Context Engine
 Provides history-aware, longitudinal analysis for personalized insights
+NO FALLBACKS - Requires valid API key
 """
 
 import json
 from datetime import datetime, timedelta
 import config
-
-try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
+import google.generativeai as genai
 
 
 class GeminiContextEngine:
@@ -21,10 +17,15 @@ class GeminiContextEngine:
     
     def __init__(self, api_key=None):
         """Initialize context engine"""
-        if not GEMINI_AVAILABLE:
-            raise ImportError("google-generativeai package not installed")
-        
         self.api_key = api_key or config.GEMINI_API_KEY
+        
+        if not self.api_key or self.api_key == 'PASTE_YOUR_GEMINI_API_KEY_HERE':
+            raise ValueError(
+                "❌ GEMINI API KEY NOT SET!\n"
+                "Get your API key from: https://makersuite.google.com/app/apikey\n"
+                "Then update it in: agentic-ai/config.py (line 20)"
+            )
+        
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel(config.GEMINI_MODEL)
     
@@ -241,22 +242,18 @@ Guidelines:
 - DO NOT diagnose or provide medical advice
 """
         
-        try:
-            response = self.model.generate_content(prompt)
-            summary_text = response.text
-            
-            # Extract recommendations (simple parsing)
-            recommendations = self._extract_recommendations(summary_text, context)
-            
-            return {
-                'summary': summary_text,
-                'trend': context['trend_analysis']['direction'],
-                'recommendations': recommendations,
-                'timestamp': datetime.now().isoformat()
-            }
-        except Exception as e:
-            print(f"Error generating context-aware analysis: {e}")
-            return self._fallback_analysis(context)
+        response = self.model.generate_content(prompt)
+        summary_text = response.text
+        
+        # Extract recommendations (simple parsing)
+        recommendations = self._extract_recommendations(summary_text, context)
+        
+        return {
+            'summary': summary_text,
+            'trend': context['trend_analysis']['direction'],
+            'recommendations': recommendations,
+            'timestamp': datetime.now().isoformat()
+        }
     
     def _extract_recommendations(self, summary_text, context):
         """Extract actionable recommendations"""
@@ -280,35 +277,6 @@ Guidelines:
             recommendations.append('Test more regularly for better trend analysis')
         
         return recommendations[:3]  # Top 3 recommendations
-    
-    def _fallback_analysis(self, context):
-        """Fallback analysis if Gemini fails"""
-        trend_dir = context['trend_analysis']['direction']
-        magnitude = context['trend_analysis']['magnitude']
-        
-        if trend_dir == 'improving':
-            summary = (
-                f"Your voice health shows positive progress with a {magnitude}% improvement. "
-                f"You've completed {context['statistics']['total_tests']} tests. "
-                "Keep up the consistent monitoring."
-            )
-        elif trend_dir == 'stable':
-            summary = (
-                f"Your voice patterns have remained stable across {context['statistics']['total_tests']} tests. "
-                "Consistency in results is good. Continue regular monitoring."
-            )
-        else:
-            summary = (
-                f"Your recent tests show some variation ({magnitude}% change). "
-                "Consider scheduling a consultation with a healthcare professional for evaluation."
-            )
-        
-        return {
-            'summary': summary,
-            'trend': trend_dir,
-            'recommendations': ['Continue regular testing', 'Consult healthcare provider if concerned'],
-            'timestamp': datetime.now().isoformat()
-        }
 
 
 # Utility function
@@ -324,13 +292,5 @@ def analyze_with_context(test_history, current_result, api_key=None):
     Returns:
         dict: Analysis results
     """
-    if not GEMINI_AVAILABLE:
-        print("Warning: Gemini not available")
-        return {
-            'summary': 'Context analysis unavailable. Install google-generativeai package.',
-            'trend': 'unknown',
-            'recommendations': []
-        }
-    
     engine = GeminiContextEngine(api_key)
     return engine.analyze_progress(test_history, current_result)
