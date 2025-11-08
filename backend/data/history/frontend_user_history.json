@@ -1,5 +1,26 @@
 [
   {
+    "id": "VPX-20251109032848",
+    "date": "2025-11-09T03:28:48.629767",
+    "risk_score": 0.16053809225559235,
+    "confidence": 0.6789238154888153,
+    "risk_level": "Low",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "recording.wav",
+    "stability_metrics": {
+      "stability_index": 0.418595552444458,
+      "jitter": 0.70084547996521,
+      "shimmer": 0.49554020166397095,
+      "hnr": 17.93876075744629,
+      "pitch_variation": 100.0,
+      "energy_variation": 34.5998420715332,
+      "interpretation": "Fair voice stability - some irregularities detected"
+    },
+    "ai_summary": "Your voice screening results show a low risk score, which is great news! It suggests that, based on your voice patterns, we aren't seeing signs of significant neurological changes right now. The stability in your scores is also very encouraging, indicating a consistent pattern over time.\n",
+    "progress_analysis": "The voice health screening results show a generally stable trend. While there was a high risk score earlier today (0.762), the recent scores indicate improvement, with the current risk score at a low 0.161. Given the \"excellent\" consistency of tests, it's advisable to maintain current habits and continue regular screenings to ensure stability. Consistent monitoring will help identify any potential changes early on, and allows you to stay proactive about your voice health.\n",
+    "trend": "stable"
+  },
+  {
     "id": "VPX-20251109032454",
     "date": "2025-11-09T03:24:54.166815",
     "risk_score": 0.19927877187728882,

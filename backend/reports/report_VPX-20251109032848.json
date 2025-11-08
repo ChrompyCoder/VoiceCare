@@ -1,0 +1,194 @@
+{
+  "report_id": "VPX-20251109032848",
+  "generated_date": "2025-11-09T03:28:52.357536",
+  "report_type": "Voice-Based Parkinson Screening",
+  "test_result": {
+    "test_id": "VPX-20251109032848",
+    "date": "2025-11-09T03:28:48.629767",
+    "risk_score": 0.16053809225559235,
+    "risk_level": "Low",
+    "confidence": 0.6789238154888153,
+    "voice_stability_index": 0
+  },
+  "acoustic_features": {
+    "jitter": 0.70084547996521,
+    "shimmer": 0.49554020166397095,
+    "hnr": 17.93876075744629,
+    "pitch_variation": 100.0,
+    "energy_variation": 34.5998420715332,
+    "interpretation": "Fair voice stability - some irregularities detected"
+  },
+  "ai_analysis": {
+    "shap_findings": {},
+    "gemini_summary": "Your voice screening results show a low risk score, which is great news! It suggests that, based on your voice patterns, we aren't seeing signs of significant neurological changes right now. The stability in your scores is also very encouraging, indicating a consistent pattern over time.\n",
+    "key_features": []
+  },
+  "test_history": [
+    {
+      "id": "VPX-20251109032454",
+      "date": "2025-11-09T03:24:54.166815",
+      "risk_score": 0.19927877187728882,
+      "confidence": 0.6014424562454224,
+      "risk_level": "Low",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "stability_metrics": {
+        "stability_index": 0.10855212062597275,
+        "jitter": 1.0,
+        "shimmer": 1.0,
+        "hnr": 16.282817840576172,
+        "pitch_variation": 100.0,
+        "energy_variation": 100.0,
+        "interpretation": "Voice instability detected - consultation recommended"
+      },
+      "ai_summary": "Your voice screening results indicate a low risk score, which is wonderful news! This suggests that, based on the analysis of your voice patterns, there are no immediate areas of significant concern. It's also great to see your scores are stable, indicating consistency over time.\n",
+      "progress_analysis": "The recent shift to a low risk level is encouraging, as evidenced by the current risk score of 0.199 compared to the high risk score of 0.762 just minutes prior. While the overall trend is stable according to our analysis, the recent fluctuations between high and low risk warrant attention; maintaining excellent consistency in testing allows us to closely monitor these changes. To ensure continued voice health, focus on maintaining any lifestyle or behavioral adjustments made that might have contributed to the lower risk score, and consider logging potential triggers for high-risk results for discussion with a healthcare professional. Keep up the consistent testing schedule!\n",
+      "trend": "stable"
+    },
+    {
+      "id": "VPX-20251109031846",
+      "date": "2025-11-09T03:18:46.212869",
+      "risk_score": 0.7621326446533203,
+      "confidence": 0.5242652893066406,
+      "risk_level": "High",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "stability_metrics": {
+        "stability_index": 0.2903253852517003,
+        "jitter": 0.9414383769035339,
+        "shimmer": 0.9886097311973572,
+        "hnr": 25.947628021240234,
+        "pitch_variation": 33.43118037180142,
+        "energy_variation": 100.0,
+        "interpretation": "Voice instability detected - consultation recommended"
+      },
+      "ai_summary": "Your voice analysis is complete. Please consult with a healthcare professional for detailed interpretation.",
+      "progress_analysis": "The current voice health screening results show a concerning high risk score of 0.762. Although past tests have shown both low and high risk scores on the same day, the overall trend is worsening, with an increase of 0.047. Given this pattern, it would be beneficial to consult with a healthcare professional to explore possible causes and preventative strategies; focusing on maintaining voice health is important. Continuing consistent voice monitoring is also recommended to track any further changes.\n",
+      "trend": "worsening"
+    },
+    {
+      "id": "VPX-20251108213557",
+      "date": "2025-11-08T21:35:57.337460",
+      "risk_score": 0.19927877187728882,
+      "confidence": 0.6014424562454224,
+      "risk_level": "Low",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "stability_metrics": {
+        "stability_index": 0.10855212062597275,
+        "jitter": 1.0,
+        "shimmer": 1.0,
+        "hnr": 16.282817840576172,
+        "pitch_variation": 100.0,
+        "energy_variation": 100.0,
+        "interpretation": "Voice instability detected - consultation recommended"
+      },
+      "ai_summary": "Your voice analysis is complete. Please consult with a healthcare professional for detailed interpretation.",
+      "progress_analysis": "The voice health screening shows a generally stable trend, which is good news. We can see the risk score recently decreased from 0.762 to 0.199, indicating improvement, although there have been some fluctuations between low and high. To maintain this stability, consider consistent voice rest and hydration habits. With \"excellent\" consistency in testing and a total of 11 tests to date, continued monitoring will help solidify positive results and catch any changes early.\n",
+      "trend": "stable"
+    },
+    {
+      "id": "VPX-20251108212728",
+      "date": "2025-11-08T21:27:28.691170",
+      "risk_score": 0.7621326446533203,
+      "confidence": 0.5242652893066406,
+      "risk_level": "High",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "stability_metrics": {
+        "stability_index": 0.2903253852517003,
+        "jitter": 0.9414383769035339,
+        "shimmer": 0.9886097311973572,
+        "hnr": 25.947628021240234,
+        "pitch_variation": 33.43118037180142,
+        "energy_variation": 100.0,
+        "interpretation": "Voice instability detected - consultation recommended"
+      },
+      "ai_summary": "Your voice analysis is complete. Please consult with a healthcare professional for detailed interpretation.",
+      "progress_analysis": "The voice health screening results show a generally improving trend, although the latest risk score of 0.762, categorized as \"High,\" is a recent spike after a period of \"Low\" risk scores. Despite the overall improving trend indicated by a change of -0.327, this recent fluctuation suggests maintaining vigilance. Consider reviewing potential factors contributing to this increase and ensure consistent adherence to vocal health practices; based on the excellent testing consistency, perhaps focus on consistency with implemented vocal exercises. Regular monitoring and awareness of vocal habits will help reinforce the overall positive trend.\n",
+      "trend": "improving"
+    },
+    {
+      "id": "VPX-20251108212625",
+      "date": "2025-11-08T21:26:25.177794",
+      "risk_score": 0.19927877187728882,
+      "confidence": 0.6014424562454224,
+      "risk_level": "Low",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "stability_metrics": {
+        "stability_index": 0.10855212062597275,
+        "jitter": 1.0,
+        "shimmer": 1.0,
+        "hnr": 16.282817840576172,
+        "pitch_variation": 100.0,
+        "energy_variation": 100.0,
+        "interpretation": "Voice instability detected - consultation recommended"
+      },
+      "ai_summary": "Your voice analysis is complete. Please consult with a healthcare professional for detailed interpretation.",
+      "progress_analysis": "The voice health screening results show a generally stable trend. There has been a sharp improvement from the high risk scores earlier today, to a low risk score of 0.199 currently. Given the consistency of testing (excellent, near-daily), it's recommended to continue with the same routine, while keeping an eye out for patterns that might affect your voice health. Consistent monitoring is key, and you're doing a great job staying proactive!\n",
+      "trend": "stable"
+    },
+    {
+      "id": "VPX-20251108210129",
+      "date": "2025-11-08T21:01:29.306828",
+      "risk_score": 0.7621326446533203,
+      "confidence": 0.5242652893066406,
+      "risk_level": "High",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "ai_summary": "I've reviewed your voice analysis, and it shows some increased irregularities in your voice stability compared to previous tests. While this doesn't tell us what's going on, it would be a good idea to schedule a consultation with a neurologist to explore these changes further and ensure you get the support you need. Consistent monitoring can help track any changes.\n",
+      "progress_analysis": "The recent voice health screenings show a concerning worsening trend, jumping from a low risk score of 0.106 to a high of 0.762 within a very short time. Although your consistency in testing is excellent, the magnitude of change (205.0) suggests a rapid shift that warrants attention. It's important to consult with a healthcare professional to discuss these results and explore potential underlying causes. Consider tracking any lifestyle or environmental changes that may correlate with these fluctuations, and remember that early identification is key to proactive voice care.\n",
+      "trend": "worsening"
+    },
+    {
+      "id": "VPX-20251108210017",
+      "date": "2025-11-08T21:00:17.773066",
+      "risk_score": 0.10572600364685059,
+      "confidence": 0.7885479927062988,
+      "risk_level": "Low",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "ai_summary": "From the voice analysis, your results look good! We've noticed some nice improvements from your previous tests, and your voice patterns seem quite stable. It's great you're keeping up with these checks, and I recommend continuing to monitor your progress.\n",
+      "progress_analysis": "The recent results show a concerning trend with a significant jump in risk score from \"Low\" to \"High\" in quick succession, though the latest result indicates a return to a \"Low\" risk level. This fluctuation, reflected in the worsening trend analysis (magnitude 304.3, change 0.608), despite excellent consistency in testing, warrants attention. While the latest score is encouraging, it's crucial to understand the cause of these swings; consider keeping a detailed log of daily activities and vocal habits. Let's continue to monitor your voice health closely and discuss these patterns with a healthcare professional to identify any potential triggers and ensure long-term vocal well-being.\n",
+      "trend": "worsening"
+    },
+    {
+      "id": "VPX-20251108205534",
+      "date": "2025-11-08T20:55:34.925604",
+      "risk_score": 0.8542633652687073,
+      "confidence": 0.7085267305374146,
+      "risk_level": "High",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "ai_summary": "I've reviewed your voice analysis, and it looks like there's been some improvement compared to your previous tests, which is great! However, some irregularities in voice stability were observed. Because of this, it may be helpful to schedule a consultation with a neurologist for a more in-depth look. Consistent testing can help track these patterns over time.\n",
+      "progress_analysis": "The voice health screening results reveal a concerning trend of worsening voice health. The risk score has increased significantly to 0.854, classified as High, after a period of Low risk scores and the previous high risk score was 0.762. Given this rapid increase, it's important to prioritize voice health. To better understand these changes, consider consulting a voice specialist and consistently applying recommended voice care techniques.\n",
+      "trend": "worsening"
+    },
+    {
+      "id": "VPX-20251108205518",
+      "date": "2025-11-08T20:55:18.608166",
+      "risk_score": 0.7621326446533203,
+      "confidence": 0.5242652893066406,
+      "risk_level": "High",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "ai_summary": "I noticed some changes in your voice patterns that may need attention. It's encouraging to see your scores have been improving recently, so keep up with consistent testing and please consult with a professional for further evaluation.\n",
+      "progress_analysis": "The recent high risk score of 0.762 is concerning given the previously low scores; this represents a significant and sudden worsening of your voice health based on our trend analysis. Although your testing consistency is excellent, the recent spike suggests exploring potential contributing factors such as allergies, vocal strain, or environmental irritants. We recommend prioritizing a voice health consultation to identify triggers and implement preventative strategies, while continuing consistent monitoring. Remember that early detection is key to maintaining your voice health.\n",
+      "trend": "worsening"
+    },
+    {
+      "id": "VPX-20251108205425",
+      "date": "2025-11-08T20:54:25.988054",
+      "risk_score": 0.11418160051107407,
+      "confidence": 0.7716367989778519,
+      "risk_level": "Low",
+      "model": "OpenSMILE_XGBoost",
+      "audio_file": "recording.wav",
+      "ai_summary": "From what I'm seeing, your voice patterns seem quite stable, and it's encouraging to see an improving trend from your previous tests. Keep monitoring and follow up with your doctor if you have any concerns.\n",
+      "progress_analysis": "Your voice health screenings show a clear improving trend, with a risk score of 0.114 today compared to an average of 0.185 across all 11 tests and a recent score of 0.201. This improvement, reflected in a -0.084 change in risk score, is a positive sign! Given your excellent consistency in testing, continue with your current routine, while being mindful of any vocal strain; consistent tracking helps monitor your voice health effectively. If you notice any concerning changes, consult with a healthcare professional.\n",
+      "trend": "improving"
+    }
+  ],
+  "disclaimer": "This report is generated by an AI-assisted screening tool and is not a medical diagnosis. Please consult a qualified healthcare professional for proper evaluation."
+}

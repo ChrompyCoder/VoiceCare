@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ArrowLeft, Loader, Upload } from 'lucide-react';
 import { Button } from '../components/Button';
 import { useApp } from '../context/AppContext';
-import { analyzeVoice } from '../utils/api';
+import { analyzeVoice, getRiskLevel } from '../utils/api';
 
 export const UploadPage: React.FC = () => {
   const { setCurrentPage, addTest } = useApp();
@@ -43,15 +43,16 @@ export const UploadPage: React.FC = () => {
       setProgress(100);
 
       const test = {
-        id: result.test_result.id,
-        date: result.test_result.date,
-        risk_score: result.test_result.risk_score,
-        confidence: result.test_result.confidence,
-        risk_level: result.test_result.risk_level,
-        ai_summary: result.test_result.ai_summary,
-        voice_stability_index: 0, // Placeholder
-        gemini_summary: result.test_result.ai_summary, // Use AI summary for both
-        ai_findings: [] // Placeholder
+        id: `VPX-${Date.now()}`,
+        date: new Date().toISOString(),
+        risk_score: result.risk_score,
+        confidence: result.confidence,
+        risk_level: getRiskLevel(result.risk_score),
+        voice_stability_index: result.voice_stability_index,
+        gemini_summary: result.gemini_summary,
+        progress_analysis: result.progress_analysis,
+        ai_findings: result.ai_findings,
+        acoustic_features: result.acoustic_features
       };
 
       addTest(test);

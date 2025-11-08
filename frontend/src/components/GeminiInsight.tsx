@@ -12,6 +12,14 @@ export const GeminiInsight: React.FC<GeminiInsightProps> = ({ summary, progressA
   const [isTypingSummary, setIsTypingSummary] = useState(true);
   const [isTypingProgress, setIsTypingProgress] = useState(false);
 
+  // Debug logging
+  console.log('GeminiInsight received:', { 
+    summary, 
+    progressAnalysis,
+    hasProgressAnalysis: !!progressAnalysis,
+    progressAnalysisLength: progressAnalysis?.length 
+  });
+
   useEffect(() => {
     // Type out AI Summary first
     let index = 0;

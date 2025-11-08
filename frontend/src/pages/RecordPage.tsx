@@ -95,6 +95,7 @@ export const RecordPage: React.FC = () => {
         risk_level: getRiskLevel(result.risk_score),
         voice_stability_index: result.voice_stability_index,
         gemini_summary: result.gemini_summary,
+        progress_analysis: result.progress_analysis,
         ai_findings: result.ai_findings,
         acoustic_features: result.acoustic_features  // Include acoustic features
       };
