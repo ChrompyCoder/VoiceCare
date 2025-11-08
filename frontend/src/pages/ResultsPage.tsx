@@ -6,13 +6,33 @@ import { RiskChip } from '../components/RiskChip';
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { GeminiInsight } from '../components/GeminiInsight';
 import { ProgressChart } from '../components/ProgressChart';
-import AcousticFeaturesCard from '../components/AcousticFeaturesCard';
+// Removed AcousticFeaturesCard (metrics UI suppressed per user request)
 import { SHAPVisualization } from '../components/SHAPVisualization';
 import { useApp } from '../context/AppContext';
 
 export const ResultsPage: React.FC = () => {
   const { setCurrentPage, latestTest, tests, clearCache } = useApp();
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // Prefer backend-provided ai_summary; fallback to legacy gemini_summary
+  const sanitizeSummary = (text: string) => {
+    if (!text) return '';
+    let t = text.trim();
+    // Remove surrounding quotes
+    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+      t = t.slice(1, -1);
+    }
+    // Remove informal preambles
+    t = t.replace(/^[\s\S]*?(?=Your|This|Based on|The)/i, (m) => (m.length > 200 ? '' : m));
+    // Collapse excessive whitespace
+    t = t.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ');
+    return t.trim();
+  };
+
+  const aiSummary = sanitizeSummary(
+    // @ts-expect-error allow backend field name
+    (latestTest?.ai_summary as string) ?? latestTest?.gemini_summary ?? ''
+  );
 
   const handleDownloadPDF = async () => {
     if (!latestTest) return;
@@ -21,6 +41,32 @@ export const ResultsPage: React.FC = () => {
       // Import jsPDF dynamically
       const { jsPDF } = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
+
+      // Helper: ensure we have a data URL for images
+      const toDataUrlIfNeeded = async (imgSrc: string): Promise<string | null> => {
+        try {
+          if (!imgSrc) return null;
+          if (imgSrc.startsWith('data:image')) return imgSrc;
+          // Attempt to load and convert to data URL
+          const img = new Image();
+          // Allow CORS if server supports it
+          img.crossOrigin = 'anonymous';
+          const loaded: HTMLImageElement = await new Promise((resolve, reject) => {
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = imgSrc;
+          });
+          const canvas = document.createElement('canvas');
+          canvas.width = loaded.naturalWidth;
+          canvas.height = loaded.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return null;
+          ctx.drawImage(loaded, 0, 0);
+          return canvas.toDataURL('image/png');
+        } catch {
+          return null;
+        }
+      };
 
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -82,9 +128,54 @@ export const ResultsPage: React.FC = () => {
       
       pdf.setFontSize(10);
       pdf.setTextColor(84, 110, 122);
-      const summaryLines = pdf.splitTextToSize(latestTest.gemini_summary || 'No summary available', pageWidth - 30);
+      const summaryLines = pdf.splitTextToSize(aiSummary || 'No summary available', pageWidth - 30);
       pdf.text(summaryLines, 15, yPosition);
       yPosition += summaryLines.length * 5 + 10;
+
+      // SHAP Explainability (Contribution plot and Heatmap)
+      if (latestTest.shap_analysis) {
+        const sa = latestTest.shap_analysis as any;
+        if (yPosition > pageHeight - 80) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        pdf.setFontSize(14);
+        pdf.setTextColor(38, 50, 56);
+        pdf.text('Explainability (SHAP)', 15, yPosition);
+        yPosition += 8;
+
+        // Contribution Plot
+        const contribImgSrc = sa.visualization_base64 ?? sa.visualization_path ?? sa.visualization;
+        if (contribImgSrc) {
+          const dataUrl = await toDataUrlIfNeeded(contribImgSrc);
+          if (dataUrl) {
+            try {
+              const imgWidth = pageWidth - 30;
+              const imgHeight = 60; // mm; approximate height
+              pdf.addImage(dataUrl, 'PNG', 15, yPosition, imgWidth, imgHeight);
+              yPosition += imgHeight + 6;
+            } catch {}
+          }
+        }
+
+        // Heatmap
+        const heatmapImgSrc = sa.heatmap_base64 ?? sa.heatmap_path ?? sa.heatmap;
+        if (heatmapImgSrc) {
+          const dataUrl = await toDataUrlIfNeeded(heatmapImgSrc);
+          if (dataUrl) {
+            try {
+              if (yPosition > pageHeight - 80) {
+                pdf.addPage();
+                yPosition = 20;
+              }
+              const imgWidth = pageWidth - 30;
+              const imgHeight = 60; // mm; approximate height
+              pdf.addImage(dataUrl, 'PNG', 15, yPosition, imgWidth, imgHeight);
+              yPosition += imgHeight + 10;
+            } catch {}
+          }
+        }
+      }
 
       // Progress Analysis (if available)
       if (latestTest.progress_analysis) {
@@ -209,17 +300,7 @@ export const ResultsPage: React.FC = () => {
     );
   }
 
-  const getComparison = () => {
-    if (tests.length < 2) return null;
-    const previous = tests[1];
-    const change = ((latestTest.risk_score - previous.risk_score) / previous.risk_score) * 100;
-    return {
-      improved: change < 0,
-      percentage: Math.abs(change).toFixed(1)
-    };
-  };
-
-  const comparison = getComparison();
+  // Comparison helper removed (UI section suppressed per request)
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-6">
@@ -261,7 +342,7 @@ export const ResultsPage: React.FC = () => {
         </Card>
 
         <GeminiInsight 
-          summary={latestTest.gemini_summary} 
+          summary={aiSummary}
           progressAnalysis={latestTest.progress_analysis}
         />
 
@@ -271,54 +352,9 @@ export const ResultsPage: React.FC = () => {
           </div>
         )}
 
-        <Card>
-          <h2 className="text-xl font-semibold text-[#263238] mb-4">
-            Voice Analysis Details
-          </h2>
+        {/* Metrics & detailed acoustic findings removed per user request */}
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-[#F5F5F5] rounded-lg">
-              <span className="text-[#546E7A]">Voice Stability Index</span>
-              <div className="flex items-center gap-2">
-                <div className="w-32 bg-gray-300 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] rounded-full"
-                    style={{ width: `${latestTest.voice_stability_index}%` }}
-                  />
-                </div>
-                <span className="font-bold text-[#263238]">{latestTest.voice_stability_index}/100</span>
-              </div>
-            </div>
-
-            <div className="p-4 bg-[#F5F5F5] rounded-lg">
-              <h3 className="font-semibold text-[#263238] mb-3">AI Findings</h3>
-              <ul className="space-y-2">
-                {latestTest.ai_findings.map((finding, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="text-[#2E7D32] mt-1">•</span>
-                    <span className="text-[#546E7A]">{finding}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {comparison && (
-              <div className={`p-4 rounded-lg ${comparison.improved ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'}`}>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className={`w-5 h-5 ${comparison.improved ? 'text-green-600 rotate-180' : 'text-orange-600'}`} />
-                  <p className="text-sm font-medium text-[#263238]">
-                    Compared to your last test, your voice stability {comparison.improved ? 'improved' : 'changed'} by {comparison.percentage}%
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {/* Acoustic Features Card */}
-        {latestTest.acoustic_features && (
-          <AcousticFeaturesCard features={latestTest.acoustic_features} />
-        )}
+        {/* Acoustic Features Card removed */}
 
         {/* SHAP Explainability */}
         {latestTest.shap_analysis && (
