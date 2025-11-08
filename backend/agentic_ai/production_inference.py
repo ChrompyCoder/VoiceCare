@@ -16,11 +16,11 @@ from datetime import datetime
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Import agentic AI modules
-import config
-from gemini_interface import GeminiInterface
-from gemini_context import GeminiContextEngine
-from history_manager import HistoryManager
-from report_generator import ReportGenerator
+from . import config
+from .gemini_interface import GeminiInterface
+from .gemini_context import GeminiContextEngine
+from .history_manager import HistoryManager
+from .report_generator import ReportGenerator
 
 
 class ProductionInference:

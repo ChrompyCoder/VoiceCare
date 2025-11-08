@@ -6,6 +6,8 @@ import { ResultsPage } from './pages/ResultsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ReportPage } from './pages/ReportPage';
 
+import { UploadPage } from './pages/UploadPage';
+
 function AppContent() {
   const { currentPage } = useApp();
 
@@ -16,7 +18,7 @@ function AppContent() {
       case 'home':
         return <HomePage />;
       case 'record':
-        return <RecordPage />;
+        return <UploadPage />; // Changed this line
       case 'results':
         return <ResultsPage />;
       case 'history':

@@ -1,22 +1,28 @@
 import { AnalysisResult } from '../types';
 
-export const analyzeVoice = async (audioBlob: Blob): Promise<AnalysisResult> => {
-  await new Promise(resolve => setTimeout(resolve, 2000));
+const API_URL = 'http://localhost:5000/predict';
 
-  const mockResult: AnalysisResult = {
-    risk_score: 0.74,
-    confidence: 0.82,
-    voice_stability_index: 67,
-    shap_image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    gemini_summary: 'Your voice shows minor irregularities that could be related to fatigue or mild tremor. It\'s recommended to monitor over time and consult a specialist if needed.',
-    ai_findings: [
-      'Mid-frequency jitter detected',
-      'Amplitude shimmer variation moderate',
-      'Spectral flatness increased'
-    ]
-  };
+export const analyzeVoice = async (audioFile: File): Promise<any> => {
+  const formData = new FormData();
+  formData.append('audio', audioFile);
 
-  return mockResult;
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Analysis failed');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error calling analysis API:', error);
+    throw error;
+  }
 };
 
 export const getRiskLevel = (score: number): 'Low' | 'Moderate' | 'High' => {

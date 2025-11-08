@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
+import sys
 import soundfile as sf
 import librosa
 import tensorflow as tf
@@ -37,7 +38,7 @@ warnings.filterwarnings('ignore')
 # 📋 CONFIGURATION
 # =============================
 MIN_DURATION = 2.0  # Minimum audio duration in seconds
-DATA_DIR = "../data"
+DATA_DIR = Path(__file__).parent.parent / "data"  # Absolute path to data/
 RESULTS_DIR = "results"
 MODELS_DIR = "models"
 TEST_SIZE = 0.2
@@ -316,6 +317,14 @@ def main():
     print(f"📊 Combined Dataset Summary")
     print("=" * 70)
     print(f"  Total files: {len(all_files)}")
+    
+    if len(all_files) == 0:
+        print("  ❌ ERROR: No audio files loaded!")
+        print("  Please check:")
+        print("     - Data paths in DATA_DIR")
+        print("     - Audio file durations (min 2.0 seconds)")
+        sys.exit(1)
+    
     print(f"  Healthy: {all_labels.count(0)} ({all_labels.count(0) / len(all_labels) * 100:.1f}%)")
     print(f"  Parkinson's: {all_labels.count(1)} ({all_labels.count(1) / len(all_labels) * 100:.1f}%)")
     
