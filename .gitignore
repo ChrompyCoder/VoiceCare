@@ -1,0 +1,59 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# TensorFlow/Keras
+*.h5
+*.hdf5
+*.pb
+checkpoints/
+logs/
+saved_models/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data files (large datasets)
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+
+# Model files
+*.pkl
+*.pickle
+*.joblib
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
