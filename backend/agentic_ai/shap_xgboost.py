@@ -94,17 +94,34 @@ class XGBoostShapExplainer:
                 save_path=save_path,
                 return_base64=return_base64
             )
+
+            # Also create a heatmap visualization
+            heatmap_path = None
+            heatmap_b64 = None
+            try:
+                heatmap_out = self._create_heatmap(
+                    shap_values=shap_values,
+                    features=audio_features,
+                    save_path=(Path(save_path).with_name(f"heatmap_{Path(save_path).name}") if save_path else None),
+                    return_base64=return_base64
+                )
+                heatmap_path = heatmap_out.get('path')
+                heatmap_b64 = heatmap_out.get('base64')
+            except Exception as _:
+                pass
             
             # Create summary
+            # Build final summary (schema_version introduced for future upgrades)
             summary = {
+                'schema_version': 2,
                 'top_features': feature_importance['top_features'],
                 'feature_categories': feature_importance['categories'],
                 'explanation': feature_importance['explanation'],
                 'visualization_path': viz_result.get('path'),
                 'visualization_base64': viz_result.get('base64'),
-                'timestamp': datetime.now().isoformat(),
-                'visualization_path': viz_result.get('path'),
-                'visualization_base64': viz_result.get('base64')
+                'heatmap_path': heatmap_path,
+                'heatmap_base64': heatmap_b64,
+                'timestamp': datetime.now().isoformat()
             }
             
             return summary
@@ -152,12 +169,14 @@ class XGBoostShapExplainer:
         top_features = []
         
         for idx in top_indices[:10]:  # Top 10 features
-            feature_name = f"Feature_{idx}" if self.feature_names is None else self.feature_names[idx]
+            raw_name = f"Feature_{idx}" if self.feature_names is None else self.feature_names[idx]
+            feature_name = self._friendly_name(raw_name)
             importance = float(shap_abs[idx])
             value = float(features[0, idx])
             
             feature_info = {
                 'index': int(idx),
+                'raw_name': raw_name,
                 'name': feature_name,
                 'importance': importance,
                 'value': value
@@ -291,6 +310,64 @@ class XGBoostShapExplainer:
             )
         
         return " ".join(explanation_parts) if explanation_parts else "Analysis complete."
+
+    def _friendly_name(self, raw):
+        """Convert a raw ComParE/OpenSMILE feature string into a concise human label.
+
+        Heuristics based on common patterns. Keeps original if no mapping found.
+        """
+        if not raw:
+            return raw
+        lower = raw.lower()
+        # Direct mappings / contains checks
+        mappings = [
+            (['jitter'], 'Jitter (Pitch Stability)'),
+            (['shimmer'], 'Shimmer (Amplitude Stability)'),
+            (['hnr'], 'Harmonic-to-Noise Ratio (HNR)'),
+            (['f0', 'pitch'], 'Pitch (F0)'),
+            (['loudness'], 'Loudness'),
+            (['energy'], 'Energy'),
+            (['zcr'], 'Zero-Crossing Rate'),
+            (['spectralflux', 'specflux'], 'Spectral Flux'),
+            (['spectralrolloff', 'rolloff'], 'Spectral Rolloff'),
+            (['spectralcentroid', 'centroid'], 'Spectral Centroid'),
+            (['mfcc'], 'MFCC Coefficient'),
+            (['formant'], 'Formant Frequency'),
+            (['voicing'], 'Voicing Probability'),
+            (['delta'], 'Delta (Change Rate)'),
+            (['stddev', 'std'], 'Standard Deviation'),
+            (['kurtosis'], 'Kurtosis'),
+            (['skewness'], 'Skewness'),
+            (['min'], 'Minimum'),
+            (['max'], 'Maximum'),
+            (['range'], 'Range'),
+            (['amean', 'mean'], 'Mean'),
+            (['quartile1'], '1st Quartile'),
+            (['quartile2', 'median'], 'Median'),
+            (['quartile3'], '3rd Quartile'),
+            (['iqr'], 'Inter-Quartile Range'),
+        ]
+        for keys, label in mappings:
+            if any(k in lower for k in keys):
+                # Add more context for mfcc with index inside []
+                if 'mfcc' in lower:
+                    import re
+                    m = re.search(r'mfcc.*\[(\d+)\]', lower)
+                    if m:
+                        return f"MFCC {m.group(1)}"
+                return label
+        # Clean generic artifacts
+        cleaned = raw
+        cleaned = cleaned.replace('F0final_sma', 'Pitch').replace('F0final', 'Pitch')
+        cleaned = cleaned.replace('_sma', '')
+        cleaned = cleaned.replace('_', ' ').replace('[', ' ').replace(']', '')
+        # Collapse multiple spaces
+        cleaned = " ".join(cleaned.split())
+        # Title case but keep MFCC capitalized
+        if 'mfcc' in lower:
+            cleaned = cleaned.replace('mfcc', 'MFCC')
+        cleaned = cleaned.title()
+        return cleaned[:60]
     
     def _create_visualization(self, shap_values, features, base_value, save_path=None, return_base64=True):
         """Create a simple contribution bar chart visualization.
@@ -335,6 +412,53 @@ class XGBoostShapExplainer:
             return result
         except Exception as e:
             print(f"⚠️ Visualization creation failed: {e}")
+            plt.close('all')
+            return {'path': None, 'base64': None, 'error': str(e)}
+
+    def _create_heatmap(self, shap_values, features, save_path=None, return_base64=True):
+        """Create a heatmap of top-K feature values and contributions.
+
+        For a single test, we present two columns per feature: value and contribution.
+        """
+        try:
+            vec = np.array(shap_values)
+            k = min(20, len(vec))
+            idx = np.argsort(np.abs(vec))[-k:][::-1]
+
+            contribs = vec[idx]
+            vals = features[0, idx]
+
+            data = np.vstack([vals, contribs]).T  # shape (k, 2)
+            row_labels = [self.feature_names[i] if self.feature_names is not None else f"Feature_{i}" for i in idx]
+            col_labels = ["Value", "Contribution"]
+
+            fig, ax = plt.subplots(figsize=(8, 0.4 * k + 2))
+            im = ax.imshow(data, aspect='auto', cmap='coolwarm')
+            ax.set_yticks(np.arange(k))
+            ax.set_yticklabels(row_labels)
+            ax.set_xticks(np.arange(2))
+            ax.set_xticklabels(col_labels)
+            plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+            ax.set_title('Top Feature Values and Contributions (Heatmap)')
+            plt.tight_layout()
+
+            result = {}
+            if save_path:
+                save_path = Path(save_path)
+                save_path.parent.mkdir(parents=True, exist_ok=True)
+                plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+                result['path'] = str(save_path)
+            if return_base64:
+                buffer = BytesIO()
+                plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+                buffer.seek(0)
+                image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+                result['base64'] = f"data:image/png;base64,{image_base64}"
+                buffer.close()
+            plt.close(fig)
+            return result
+        except Exception as e:
+            print(f"⚠️ Heatmap creation failed: {e}")
             plt.close('all')
             return {'path': None, 'base64': None, 'error': str(e)}
     

@@ -326,9 +326,48 @@ class ProductionInference:
         shap_cache_path = config.SHAP_DIR / f"{test_id}.json"
         if shap_cache_path.exists():
             try:
-                import json
+                import json, base64
                 shap_explanation = json.loads(shap_cache_path.read_text(encoding='utf-8'))
                 print("   ♻️ Loaded SHAP explanation from cache")
+
+                # --- Schema / field upgrade logic (labels, heatmaps) ---
+                upgraded = False
+                # Backfill heatmap_base64 if path exists but base64 missing
+                if shap_explanation and shap_explanation.get('heatmap_path') and not shap_explanation.get('heatmap_base64'):
+                    hp = Path(shap_explanation['heatmap_path'])
+                    if hp.exists():
+                        try:
+                            b64 = base64.b64encode(hp.read_bytes()).decode('utf-8')
+                            shap_explanation['heatmap_base64'] = f"data:image/png;base64,{b64}"
+                            upgraded = True
+                            print("   🔁 Added missing heatmap_base64 to cached SHAP explanation")
+                        except Exception as e:
+                            print(f"   ⚠️ Failed to backfill heatmap_base64: {e}")
+                # Backfill raw_name & friendly name if only numeric Feature_x present
+                if shap_explanation and shap_explanation.get('top_features'):
+                    for f in shap_explanation['top_features']:
+                        if 'raw_name' not in f:
+                            f['raw_name'] = f.get('name')
+                        # If name still looks like 'Feature_123', attempt friendly conversion using explainer helper
+                        if f.get('name','').startswith('Feature_') and hasattr(self, 'shap_explainer') and self.shap_explainer:
+                            try:
+                                f['name'] = self.shap_explainer._friendly_name(f['raw_name'])
+                                upgraded = True
+                            except Exception:
+                                pass
+                # Inject / bump schema_version
+                target_schema = 3
+                if shap_explanation and shap_explanation.get('schema_version', 0) < target_schema:
+                    shap_explanation['schema_version'] = target_schema
+                    upgraded = True
+                    print(f"   🔁 Updated schema_version={target_schema} in cached SHAP explanation")
+                # Persist upgrade if any modifications
+                if upgraded:
+                    try:
+                        shap_cache_path.write_text(json.dumps(shap_explanation, indent=2), encoding='utf-8')
+                        print("   💾 Upgraded SHAP cache saved")
+                    except Exception as e:
+                        print(f"   ⚠️ Could not save upgraded SHAP cache: {e}")
             except Exception:
                 shap_explanation = None
         if shap_explanation is None and self.shap_enabled and self.shap_explainer:
@@ -345,6 +384,9 @@ class ProductionInference:
                 # Persist cache
                 try:
                     import json
+                    # Ensure schema_version present in newly generated explanation
+                    if shap_explanation.get('schema_version', 0) < 3:
+                        shap_explanation['schema_version'] = 3
                     shap_cache_path.write_text(json.dumps(shap_explanation, indent=2), encoding='utf-8')
                     print("   💾 SHAP explanation cached")
                 except Exception as e:
@@ -426,7 +468,9 @@ class ProductionInference:
                     'clinical_interpretation': shap_explanation.get('explanation', ''),
                     'top_3_features': top_3_formatted,
                     'visualization': shap_explanation.get('visualization_path'),
-                    'visualization_base64': shap_explanation.get('visualization_base64')
+                    'visualization_base64': shap_explanation.get('visualization_base64'),
+                    'heatmap': shap_explanation.get('heatmap_path'),
+                    'heatmap_base64': shap_explanation.get('heatmap_base64')
                 }
             
             reports = self.report_gen.generate_full_report(

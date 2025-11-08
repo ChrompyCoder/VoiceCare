@@ -8,6 +8,7 @@ export interface AcousticFeatures {
 
 export interface SHAPFeature {
   name: string;
+  raw_name?: string;
   index: number;
   importance: number;
   value: number;
@@ -18,6 +19,7 @@ export interface SHAPAnalysis {
   feature_categories: Record<string, SHAPFeature[]>;
   explanation: string;
   visualization_base64?: string;
+  heatmap_base64?: string;
 }
 
 export interface VoiceTest {

@@ -280,6 +280,29 @@ class ReportGenerator:
                     added_image = False
             if added_image:
                 elements.append(Spacer(1, 0.1*inch))
+
+            # SHAP heatmap visualization (path or base64)
+            heatmap_added = False
+            if 'heatmap' in shap_summary and shap_summary['heatmap'] and Path(str(shap_summary['heatmap'])).exists():
+                elements.append(Spacer(1, 0.2*inch))
+                img2 = Image(str(shap_summary['heatmap']), width=5*inch, height=3*inch)
+                elements.append(img2)
+                heatmap_added = True
+            elif 'heatmap_base64' in shap_summary and shap_summary['heatmap_base64']:
+                try:
+                    b64 = shap_summary['heatmap_base64']
+                    if b64.startswith('data:image'):
+                        b64 = b64.split(',', 1)[1]
+                    img_bytes = base64.b64decode(b64)
+                    buf = BytesIO(img_bytes)
+                    elements.append(Spacer(1, 0.2*inch))
+                    img2 = Image(buf, width=5*inch, height=3*inch)
+                    elements.append(img2)
+                    heatmap_added = True
+                except Exception:
+                    heatmap_added = False
+            if heatmap_added:
+                elements.append(Spacer(1, 0.1*inch))
             
             elements.append(Spacer(1, 0.3*inch))
         

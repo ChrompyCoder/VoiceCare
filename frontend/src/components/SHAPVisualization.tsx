@@ -10,6 +10,7 @@ interface SHAPVisualizationProps {
 export const SHAPVisualization: React.FC<SHAPVisualizationProps> = ({ shapAnalysis }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showWaterfall, setShowWaterfall] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   if (!shapAnalysis || !shapAnalysis.top_features || shapAnalysis.top_features.length === 0) {
     return null;
@@ -77,8 +78,11 @@ export const SHAPVisualization: React.FC<SHAPVisualizationProps> = ({ shapAnalys
           return (
             <div key={index} className="space-y-1">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-[#263238] truncate max-w-[70%]">
+                <span className="text-sm font-medium text-[#263238] truncate max-w-[70%]" title={feature.raw_name || feature.name}>
                   {index + 1}. {feature.name}
+                  {feature.raw_name && feature.raw_name !== feature.name && (
+                    <span className="text-xs text-[#546E7A] ml-2">({feature.raw_name})</span>
+                  )}
                 </span>
                 <span className="text-xs font-mono text-[#546E7A]">
                   {feature.importance.toFixed(4)}
@@ -109,7 +113,7 @@ export const SHAPVisualization: React.FC<SHAPVisualizationProps> = ({ shapAnalys
       {/* Expanded Content */}
       {isExpanded && (
         <div className="mt-6 space-y-4 animate-fadeIn">
-          {/* Waterfall Plot Toggle */}
+          {/* Contribution Plot Toggle (bar chart) */}
           {shapAnalysis.visualization_base64 && (
             <div>
               <button
@@ -118,18 +122,18 @@ export const SHAPVisualization: React.FC<SHAPVisualizationProps> = ({ shapAnalys
                          hover:shadow-lg transition-all duration-300 font-medium flex items-center justify-center gap-2"
               >
                 <BarChart3 className="w-5 h-5" />
-                {showWaterfall ? 'Hide' : 'Show'} SHAP Waterfall Plot
+                {showWaterfall ? 'Hide' : 'Show'} Feature Contribution Plot
               </button>
 
               {showWaterfall && (
                 <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200 shadow-inner">
                   <img
                     src={shapAnalysis.visualization_base64}
-                    alt="SHAP Waterfall Plot"
+                    alt="Feature Contribution Plot"
                     className="w-full h-auto rounded"
                   />
                   <p className="text-xs text-[#546E7A] mt-2 text-center">
-                    Waterfall plot showing how each feature pushes the prediction higher or lower
+                    Bar chart showing how each feature pushes the prediction higher or lower
                   </p>
                 </div>
               )}
@@ -153,6 +157,41 @@ export const SHAPVisualization: React.FC<SHAPVisualizationProps> = ({ shapAnalys
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Heatmap Toggle (prefer base64; fallback to path) */}
+          {(shapAnalysis.heatmap_base64 || (shapAnalysis as any).heatmap_path) && (
+            <div>
+              <button
+                onClick={() => setShowHeatmap(!showHeatmap)}
+                className="w-full mt-3 bg-gradient-to-r from-[#06b6d4] to-[#0ea5e9] text-white py-3 rounded-lg 
+                         hover:shadow-lg transition-all duration-300 font-medium flex items-center justify-center gap-2"
+              >
+                <BarChart3 className="w-5 h-5" />
+                {showHeatmap ? 'Hide' : 'Show'} Feature Heatmap
+              </button>
+
+              {showHeatmap && (
+                <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200 shadow-inner">
+                  {shapAnalysis.heatmap_base64 ? (
+                    <img
+                      src={shapAnalysis.heatmap_base64}
+                      alt="SHAP Feature Heatmap"
+                      className="w-full h-auto rounded"
+                    />
+                  ) : (
+                    <img
+                      src={(shapAnalysis as any).heatmap_path}
+                      alt="SHAP Feature Heatmap"
+                      className="w-full h-auto rounded"
+                    />
+                  )}
+                  <p className="text-xs text-[#546E7A] mt-2 text-center">
+                    Heatmap of top features: value (left) and contribution (right)
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
