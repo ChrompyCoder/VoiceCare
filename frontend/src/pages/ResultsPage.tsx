@@ -4,8 +4,9 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { RiskChip } from '../components/RiskChip';
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
-import { GeminiInsight } from '../components/GeminiInsight';
-import { ProgressChart } from '../components/ProgressChart';
+// import { GeminiInsight } from '../components/GeminiInsight';
+// import { ProgressChart } from '../components/ProgressChart';
+import { RiskProgressCard } from '../components/RiskProgressCard';
 // Removed AcousticFeaturesCard (metrics UI suppressed per user request)
 import { SHAPVisualization } from '../components/SHAPVisualization';
 import { useApp } from '../context/AppContext';
@@ -18,13 +19,19 @@ export const ResultsPage: React.FC = () => {
   const sanitizeSummary = (text: string) => {
     if (!text) return '';
     let t = text.trim();
-    // Remove surrounding quotes
-    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
-      t = t.slice(1, -1);
+    // Normalize quotes
+    t = t.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+    // Extract content inside first/last quotes if present
+    const firstQ = t.indexOf('"');
+    const lastQ = t.lastIndexOf('"');
+    if (firstQ !== -1 && lastQ > firstQ + 10) {
+      t = t.substring(firstQ + 1, lastQ).trim();
     }
-    // Remove informal preambles
-    t = t.replace(/^[\s\S]*?(?=Your|This|Based on|The)/i, (m) => (m.length > 200 ? '' : m));
-    // Collapse excessive whitespace
+    // Strip common preambles
+    t = t.replace(/^(okay,?\s*)?here('?| i)s( a)? (warm\s+)?summary[^:]*:\s*/i, '');
+    t = t.replace(/^based on (your )?results[,\s:]*/i, '');
+    t = t.replace(/^in summary[:,]?\s*/i, '');
+    // Collapse whitespace
     t = t.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ');
     return t.trim();
   };
@@ -120,10 +127,10 @@ export const ResultsPage: React.FC = () => {
       
       yPosition += 15;
 
-      // AI Summary
+  // Inference (renamed from AI Summary)
       pdf.setFontSize(14);
       pdf.setTextColor(38, 50, 56);
-      pdf.text('AI Summary', 15, yPosition);
+  pdf.text('Inference', 15, yPosition);
       yPosition += 8;
       
       pdf.setFontSize(10);
@@ -177,7 +184,7 @@ export const ResultsPage: React.FC = () => {
         }
       }
 
-      // Progress Analysis (if available)
+      // Risk Score & Progress (combined)
       if (latestTest.progress_analysis) {
         if (yPosition > pageHeight - 40) {
           pdf.addPage();
@@ -186,7 +193,7 @@ export const ResultsPage: React.FC = () => {
 
         pdf.setFontSize(14);
         pdf.setTextColor(38, 50, 56);
-        pdf.text('Progress Analysis', 15, yPosition);
+        pdf.text('Risk Score & Progress', 15, yPosition);
         yPosition += 8;
         
         pdf.setFontSize(10);
@@ -242,10 +249,7 @@ export const ResultsPage: React.FC = () => {
             yPosition = 20;
           }
           
-          pdf.setFontSize(14);
-          pdf.setTextColor(38, 50, 56);
-          pdf.text('Progress Trend', 15, yPosition);
-          yPosition += 8;
+          // Chart under the same section heading
           
           pdf.addImage(imgData, 'PNG', 15, yPosition, imgWidth, imgHeight);
           yPosition += imgHeight + 10;
@@ -302,6 +306,8 @@ export const ResultsPage: React.FC = () => {
 
   // Comparison helper removed (UI section suppressed per request)
 
+  // Progress section state handled inside RiskProgressCard
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-6">
       <header className="bg-white shadow-sm p-6 mb-6">
@@ -341,16 +347,23 @@ export const ResultsPage: React.FC = () => {
           </div>
         </Card>
 
-        <GeminiInsight 
-          summary={aiSummary}
-          progressAnalysis={latestTest.progress_analysis}
-        />
-
-        {tests.length > 1 && (
-          <div ref={chartRef}>
-            <ProgressChart tests={tests} />
+        {/* Inference (renamed from AI Summary) */}
+        <Card>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-[#263238]">Inference</h3>
           </div>
+          <p className="text-[#546E7A] leading-relaxed whitespace-pre-wrap">{aiSummary}</p>
+        </Card>
+
+        {(latestTest.progress_analysis || tests.length > 1) && (
+          <RiskProgressCard
+            tests={tests}
+            progressAnalysis={latestTest.progress_analysis}
+            chartRef={chartRef}
+          />
         )}
+
+        {/* Progress chart moved into collapsible card above */}
 
         {/* Metrics & detailed acoustic findings removed per user request */}
 
