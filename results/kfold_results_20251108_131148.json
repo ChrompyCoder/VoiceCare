@@ -1,0 +1,88 @@
+{
+    "timestamp": "20251108_131148",
+    "n_folds": 5,
+    "total_samples": 616,
+    "min_duration": 3.0,
+    "fold_results": [
+        {
+            "fold": 1,
+            "val_loss": 0.40675172209739685,
+            "val_accuracy": 0.9838709831237793,
+            "val_precision": 0.9907407164573669,
+            "val_recall": 0.9907407164573669,
+            "val_f1_score": 0.9907406664573695,
+            "val_auc": 0.9924768209457397,
+            "overfitting_detected": false,
+            "model_path": "models/fold1_model_20251108_131148.h5"
+        },
+        {
+            "fold": 2,
+            "val_loss": 0.7252699732780457,
+            "val_accuracy": 0.934959352016449,
+            "val_precision": 0.9626168012619019,
+            "val_recall": 0.9626168012619019,
+            "val_f1_score": 0.9626167512619044,
+            "val_auc": 0.9339953064918518,
+            "overfitting_detected": true,
+            "model_path": "models/fold2_model_20251108_131148.h5"
+        },
+        {
+            "fold": 3,
+            "val_loss": 0.31741052865982056,
+            "val_accuracy": 0.9837398529052734,
+            "val_precision": 1.0,
+            "val_recall": 0.9813084006309509,
+            "val_f1_score": 0.9905659823479803,
+            "val_auc": 0.9976635575294495,
+            "overfitting_detected": false,
+            "model_path": "models/fold3_model_20251108_131148.h5"
+        },
+        {
+            "fold": 4,
+            "val_loss": 0.39913177490234375,
+            "val_accuracy": 0.9756097793579102,
+            "val_precision": 1.0,
+            "val_recall": 0.9719626307487488,
+            "val_f1_score": 0.9857819476940086,
+            "val_auc": 0.9941588640213013,
+            "overfitting_detected": false,
+            "model_path": "models/fold4_model_20251108_131148.h5"
+        },
+        {
+            "fold": 5,
+            "val_loss": 0.44446036219596863,
+            "val_accuracy": 0.9674796462059021,
+            "val_precision": 0.9904761910438538,
+            "val_recall": 0.9719626307487488,
+            "val_f1_score": 0.9811320328498117,
+            "val_auc": 0.9856892228126526,
+            "overfitting_detected": false,
+            "model_path": "models/fold5_model_20251108_131148.h5"
+        }
+    ],
+    "mean_metrics": {
+        "val_accuracy": 0.9691319227218628,
+        "val_precision": 0.9887667417526245,
+        "val_recall": 0.9757182359695434,
+        "val_f1_score": 0.9821674761222148,
+        "val_auc": 0.980796754360199,
+        "val_loss": 0.4586048722267151
+    },
+    "std_metrics": {
+        "val_accuracy": 0.01812781707031284,
+        "val_precision": 0.013733246975038658,
+        "val_recall": 0.009558049942286373,
+        "val_f1_score": 0.01039617130894102,
+        "val_auc": 0.023722439795771846,
+        "val_loss": 0.13962233662398021
+    },
+    "configuration": {
+        "use_regularization": true,
+        "l2_reg": 0.001,
+        "dropout_rate": 0.5,
+        "data_augmentation": true,
+        "sample_rate": 22050,
+        "duration": 5,
+        "min_duration": 3.0
+    }
+}
