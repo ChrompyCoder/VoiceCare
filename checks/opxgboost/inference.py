@@ -10,19 +10,54 @@ import numpy as np
 import pickle
 import xgboost as xgb
 import opensmile
+import librosa
+import noisereduce as nr
+import soundfile as sf
 import argparse
 from pathlib import Path
+import tempfile
 
-def extract_opensmile_features(audio_path, feature_set='ComParE_2016'):
+def denoise_audio(audio_path):
+    """Denoise audio file and return path to denoised version."""
+    try:
+        # Load audio
+        y, sr = librosa.load(audio_path, sr=None)
+        
+        # Apply denoising
+        y_denoised = nr.reduce_noise(y=y, sr=sr, stationary=False, prop_decrease=0.8)
+        
+        # Save to temporary file
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+        sf.write(temp_file.name, y_denoised, sr)
+        
+        return temp_file.name
+    except Exception as e:
+        print(f"Warning: Denoising failed, using original audio: {e}")
+        return audio_path
+
+def extract_opensmile_features(audio_path, feature_set='ComParE_2016', denoise=True):
     """Extract features using OpenSMILE (must match training feature set)."""
     try:
+        # Denoise audio first
+        if denoise:
+            audio_path_processed = denoise_audio(audio_path)
+        else:
+            audio_path_processed = audio_path
+        
         smile = opensmile.Smile(
             feature_set=opensmile.FeatureSet[feature_set],
             feature_level=opensmile.FeatureLevel.Functionals,
         )
         
-        features = smile.process_file(audio_path)
+        features = smile.process_file(audio_path_processed)
         feature_vector = features.values.flatten()
+        
+        # Clean up temp file if denoising was used
+        if denoise and audio_path_processed != audio_path:
+            try:
+                os.unlink(audio_path_processed)
+            except:
+                pass
         
         return feature_vector
     except Exception as e:

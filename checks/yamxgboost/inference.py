@@ -12,35 +12,84 @@ import librosa
 import opensmile
 import tensorflow_hub as hub
 import xgboost as xgb
+import noisereduce as nr
+import soundfile as sf
 import argparse
 from pathlib import Path
+import tempfile
+
+def denoise_audio(audio_path):
+    """Denoise audio file and return path to denoised version."""
+    try:
+        # Load audio
+        y, sr = librosa.load(audio_path, sr=None)
+        
+        # Apply denoising
+        y_denoised = nr.reduce_noise(y=y, sr=sr, stationary=False, prop_decrease=0.8)
+        
+        # Save to temporary file
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+        sf.write(temp_file.name, y_denoised, sr)
+        
+        return temp_file.name
+    except Exception as e:
+        print(f"Warning: Denoising failed, using original audio: {e}")
+        return audio_path
 
 def load_yamnet_model():
     """Load YAMNet model."""
     yamnet_model = hub.load('https://tfhub.dev/google/yamnet/1')
     return yamnet_model
 
-def extract_yamnet_embeddings(audio_path, yamnet_model):
+def extract_yamnet_embeddings(audio_path, yamnet_model, denoise=True):
     """Extract YAMNet embeddings."""
     try:
-        waveform, sr = librosa.load(audio_path, sr=16000, mono=True)
+        # Denoise audio first
+        if denoise:
+            audio_path_processed = denoise_audio(audio_path)
+        else:
+            audio_path_processed = audio_path
+        
+        waveform, sr = librosa.load(audio_path_processed, sr=16000, mono=True)
         waveform = waveform.astype(np.float32)
         scores, embeddings, spectrogram = yamnet_model(waveform)
         embedding_mean = np.mean(embeddings.numpy(), axis=0)
+        
+        # Clean up temp file if denoising was used
+        if denoise and audio_path_processed != audio_path:
+            try:
+                os.unlink(audio_path_processed)
+            except:
+                pass
+        
         return embedding_mean
     except Exception as e:
         print(f"Error extracting YAMNet embeddings: {e}")
         return None
 
-def extract_opensmile_features(audio_path, feature_set='eGeMAPSv02'):
+def extract_opensmile_features(audio_path, feature_set='eGeMAPSv02', denoise=True):
     """Extract OpenSMILE features."""
     try:
+        # Denoise audio first
+        if denoise:
+            audio_path_processed = denoise_audio(audio_path)
+        else:
+            audio_path_processed = audio_path
+        
         smile = opensmile.Smile(
             feature_set=opensmile.FeatureSet[feature_set],
             feature_level=opensmile.FeatureLevel.Functionals,
         )
-        features = smile.process_file(audio_path)
+        features = smile.process_file(audio_path_processed)
         feature_vector = features.values.flatten()
+        
+        # Clean up temp file if denoising was used
+        if denoise and audio_path_processed != audio_path:
+            try:
+                os.unlink(audio_path_processed)
+            except:
+                pass
+        
         return feature_vector
     except Exception as e:
         print(f"Error extracting OpenSMILE features: {e}")
