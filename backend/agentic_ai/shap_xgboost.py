@@ -169,7 +169,13 @@ class XGBoostShapExplainer:
         top_features = []
         
         for idx in top_indices[:10]:  # Top 10 features
-            raw_name = f"Feature_{idx}" if self.feature_names is None else self.feature_names[idx]
+            # Prefer provided feature_names; fall back to generic placeholder
+            raw_name = None
+            if self.feature_names is not None and idx < len(self.feature_names):
+                raw_name = str(self.feature_names[idx])
+            if not raw_name or raw_name.strip() == '' or raw_name.lower().startswith('feature_'):
+                raw_name = f"Feature_{idx}"
+            # Build friendly label
             feature_name = self._friendly_name(raw_name)
             importance = float(shap_abs[idx])
             value = float(features[0, idx])
@@ -366,6 +372,10 @@ class XGBoostShapExplainer:
         # Title case but keep MFCC capitalized
         if 'mfcc' in lower:
             cleaned = cleaned.replace('mfcc', 'MFCC')
+        # Shorten statistical suffix clutter
+        cleaned = cleaned.replace(' F0', ' Pitch')
+        cleaned = cleaned.replace(' AudSpec', ' Audio Spectrum')
+        cleaned = cleaned.replace(' Pcm', ' PCM')
         cleaned = cleaned.title()
         return cleaned[:60]
     

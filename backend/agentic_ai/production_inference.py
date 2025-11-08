@@ -149,6 +149,8 @@ class ProductionInference:
             verbose=False
         )
         print("✅ OpenSMILE initialized with ComParE_2016 feature set")
+        # Track latest feature names from OpenSMILE to label SHAP outputs
+        self.last_feature_names = None
         
         # Initialize SHAP explainer
         print("\n[5/6] Initializing SHAP explainer...")
@@ -227,6 +229,11 @@ class ProductionInference:
             
             # Drop non-numeric columns if any
             features = features.select_dtypes(include=np.number)
+            # Store column names for SHAP labeling
+            try:
+                self.last_feature_names = features.columns.tolist()
+            except Exception:
+                self.last_feature_names = None
 
             # Scale features
             print("   Scaling features...")
@@ -319,6 +326,13 @@ class ProductionInference:
         
         # Generate test ID early (needed for caching paths)
         test_id = f"VPX-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        # Before SHAP, ensure explainer has the latest column names for friendly labels
+        try:
+            if self.shap_explainer and self.last_feature_names:
+                self.shap_explainer.feature_names = self.last_feature_names
+        except Exception:
+            pass
 
         # Generate SHAP explanation (with caching)
         print("\n[6/8] Generating SHAP feature importance analysis...")
