@@ -6,6 +6,7 @@ interface AppContextType {
   setCurrentPage: (page: string) => void;
   tests: VoiceTest[];
   addTest: (test: VoiceTest) => void;
+  clearCache: () => void;
   latestTest: VoiceTest | null;
 }
 
@@ -28,10 +29,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('voicecare_tests', JSON.stringify(updated));
   };
 
+  const clearCache = () => {
+    setTests([]);
+    localStorage.removeItem('voicecare_tests');
+    setCurrentPage('home');
+  };
+
   const latestTest = tests.length > 0 ? tests[0] : null;
 
   return (
-    <AppContext.Provider value={{ currentPage, setCurrentPage, tests, addTest, latestTest }}>
+    <AppContext.Provider value={{ currentPage, setCurrentPage, tests, addTest, clearCache, latestTest }}>
       {children}
     </AppContext.Provider>
   );

@@ -6,8 +6,9 @@ NO FALLBACKS - Requires valid API key
 
 import json
 from datetime import datetime
-import config
-import google.generativeai as genai
+from . import config
+import os
+from google import genai
 
 
 class GeminiInterface:
@@ -28,11 +29,13 @@ class GeminiInterface:
             raise ValueError(
                 "❌ GEMINI API KEY NOT SET!\n"
                 "Get your API key from: https://makersuite.google.com/app/apikey\n"
-                "Then update it in: agentic-ai/config.py (line 20)"
+                "Then update it in: agentic_ai/config.py (line 20)"
             )
         
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel(config.GEMINI_MODEL)
+        # Set API key as environment variable for genai client
+        os.environ['GOOGLE_API_KEY'] = self.api_key
+        self.client = genai.Client()
+        self.model_name = config.GEMINI_MODEL
         self.system_prompt = config.GEMINI_SYSTEM_PROMPT
     
     def generate_summary(self, result_context, include_history=False, test_history=None):
@@ -54,8 +57,9 @@ class GeminiInterface:
         prompt = self._create_prompt(context, include_history)
         
         # Get Gemini response (NO FALLBACK)
-        response = self.model.generate_content(
-            f"{self.system_prompt}\n\n{prompt}"
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=f"{self.system_prompt}\n\n{prompt}"
         )
         
         return {

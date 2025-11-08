@@ -4,16 +4,13 @@ import os
 from pathlib import Path
 import werkzeug
 
-# It's important to set the working directory to the script's location
-os.chdir(Path(__file__).parent)
-
 from agentic_ai.production_inference import ProductionInference
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Create an uploads folder if it doesn't exist
-UPLOADS_DIR = Path('uploads')
+UPLOADS_DIR = Path(__file__).parent / 'uploads'
 UPLOADS_DIR.mkdir(exist_ok=True)
 
 # Initialize the inference engine once
@@ -60,4 +57,8 @@ def predict():
 
 if __name__ == '__main__':
     # Running on 0.0.0.0 makes it accessible from your local network
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("\n✅ Backend server is ready!")
+    print("📡 Listening on http://localhost:5000")
+    print("🔗 Frontend should connect to: http://localhost:5000/predict")
+    print("\nPress CTRL+C to stop the server\n")
+    app.run(host='0.0.0.0', port=5000, debug=False)

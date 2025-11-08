@@ -1,12 +1,10 @@
 import { AppProvider, useApp } from './context/AppContext';
 import { SplashPage } from './pages/SplashPage';
 import { HomePage } from './pages/HomePage';
-import { RecordPage } from './pages/RecordPage';
+import { UploadPage } from './pages/UploadPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ReportPage } from './pages/ReportPage';
-
-import { UploadPage } from './pages/UploadPage';
 
 function AppContent() {
   const { currentPage } = useApp();
@@ -18,7 +16,7 @@ function AppContent() {
       case 'home':
         return <HomePage />;
       case 'record':
-        return <UploadPage />; // Changed this line
+        return <UploadPage />;
       case 'results':
         return <ResultsPage />;
       case 'history':

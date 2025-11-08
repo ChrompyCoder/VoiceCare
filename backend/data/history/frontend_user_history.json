@@ -1,0 +1,38 @@
+[
+  {
+    "id": "VPX-20251108171615",
+    "date": "2025-11-08T17:16:15.640318",
+    "risk_score": 0.9940251708030701,
+    "confidence": 0.9880503416061401,
+    "risk_level": "High",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "DL3.wav",
+    "ai_summary": "I noticed some changes in your voice patterns that might need checking out, but it looks like your voice stability has improved since the last test. It's great that you're keeping up with these tests and I suggest you continue to monitor and share these results with your doctor.\n",
+    "progress_analysis": "The voice health screening shows a concerning trend with a recent high risk score of 0.994, despite an earlier low risk score of 0.134 today. While the system indicates stable trend, the recent increase in risk suggests a potential issue needing attention. Considering the 'excellent' consistency of tests, it would be beneficial to consult with a healthcare professional to discuss these results and explore potential contributing factors; consistently monitoring your voice health and seeking timely guidance will help ensure your well-being.\n",
+    "trend": "stable"
+  },
+  {
+    "id": "VPX-20251108170556",
+    "date": "2025-11-08T17:05:56.097437",
+    "risk_score": 0.978765070438385,
+    "confidence": 0.95753014087677,
+    "risk_level": "High",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "sanj3.wav",
+    "ai_summary": "I've reviewed your voice analysis and noticed some irregularities in your voice stability, which resulted in a higher risk score than your previous test. While I can't say what this means, it's a good idea to share these results with your doctor for further evaluation. They can provide personalized guidance and support.\n",
+    "progress_analysis": "The sudden increase in risk score to 0.979 (\"High\" risk) compared to the previous test at 0.134 (\"Low\" risk) is concerning. While the overall trend analysis is limited by only two tests, this recent spike warrants immediate attention, deviating significantly from the average risk of 0.134. I recommend scheduling a follow-up screening as soon as possible and consulting with a healthcare professional to explore potential contributing factors and ensure your voice health. Please prioritize this and remember that proactive monitoring is key to maintaining your well-being.\n",
+    "trend": "insufficient_data"
+  },
+  {
+    "id": "VPX-20251108170347",
+    "date": "2025-11-08T17:03:47.034321",
+    "risk_score": 0.1335168033838272,
+    "confidence": 0.7329663932323456,
+    "risk_level": "Low",
+    "model": "OpenSMILE_XGBoost",
+    "audio_file": "AH_195B_39DA6A45-F4CC-492A-80D4-FB79049ACC22.wav",
+    "ai_summary": "From the voice analysis, your speech patterns appear quite stable and neutral. While I can't provide a diagnosis, these are positive indicators, and reflect the general patterns we observed. If you have any specific concerns, consulting with a healthcare professional is always a good step.\n",
+    "progress_analysis": "First test - baseline established",
+    "trend": "baseline"
+  }
+]

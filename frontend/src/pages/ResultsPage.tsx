@@ -1,14 +1,149 @@
-import React from 'react';
-import { ArrowLeft, FileText, RotateCcw, TrendingUp } from 'lucide-react';
+import React, { useRef } from 'react';
+import { ArrowLeft, RotateCcw, TrendingUp, Download, Trash2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { RiskChip } from '../components/RiskChip';
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { GeminiInsight } from '../components/GeminiInsight';
+import { ProgressChart } from '../components/ProgressChart';
 import { useApp } from '../context/AppContext';
 
 export const ResultsPage: React.FC = () => {
-  const { setCurrentPage, latestTest, tests } = useApp();
+  const { setCurrentPage, latestTest, tests, clearCache } = useApp();
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadPDF = async () => {
+    if (!latestTest) return;
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let yPosition = 20;
+
+      // Header
+      pdf.setFillColor(46, 125, 50);
+      pdf.rect(0, 0, pageWidth, 30, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(24);
+      pdf.text('VoiceCare AI', pageWidth / 2, 15, { align: 'center' });
+      pdf.setFontSize(12);
+      pdf.text('Voice Health Screening Report', pageWidth / 2, 22, { align: 'center' });
+
+      yPosition = 40;
+      pdf.setTextColor(38, 50, 56);
+
+      // Test Information
+      pdf.setFontSize(10);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text(`Test ID: ${latestTest.id}`, 15, yPosition);
+      pdf.text(`Date: ${new Date(latestTest.date).toLocaleString()}`, pageWidth - 15, yPosition, { align: 'right' });
+      
+      yPosition += 15;
+
+      // Risk Score Section
+      pdf.setFontSize(16);
+      pdf.setTextColor(38, 50, 56);
+      pdf.text('Risk Assessment', 15, yPosition);
+      yPosition += 8;
+
+      const riskScore = (latestTest.risk_score * 100).toFixed(1);
+      pdf.setFontSize(32);
+      
+      // Color based on risk level
+      if (latestTest.risk_level === 'Low') pdf.setTextColor(67, 160, 71);
+      else if (latestTest.risk_level === 'Moderate') pdf.setTextColor(255, 160, 0);
+      else pdf.setTextColor(229, 57, 53);
+      
+      pdf.text(`${riskScore}%`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
+      
+      pdf.setFontSize(14);
+      pdf.text(`${latestTest.risk_level} Risk`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 5;
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text(`Confidence: ${(latestTest.confidence * 100).toFixed(0)}%`, pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 15;
+
+      // AI Summary
+      pdf.setFontSize(14);
+      pdf.setTextColor(38, 50, 56);
+      pdf.text('AI Analysis Summary', 15, yPosition);
+      yPosition += 8;
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(84, 110, 122);
+      const summaryLines = pdf.splitTextToSize(latestTest.gemini_summary || 'No summary available', pageWidth - 30);
+      pdf.text(summaryLines, 15, yPosition);
+      yPosition += summaryLines.length * 5 + 10;
+
+      // Add chart if available
+      if (chartRef.current && tests.length > 1) {
+        try {
+          const canvas = await html2canvas(chartRef.current, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+          });
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = pageWidth - 30;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          if (yPosition + imgHeight > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+          
+          pdf.setFontSize(14);
+          pdf.setTextColor(38, 50, 56);
+          pdf.text('Progress Trend', 15, yPosition);
+          yPosition += 8;
+          
+          pdf.addImage(imgData, 'PNG', 15, yPosition, imgWidth, imgHeight);
+          yPosition += imgHeight + 10;
+        } catch (error) {
+          console.error('Error adding chart to PDF:', error);
+        }
+      }
+
+      // Disclaimer
+      if (yPosition > pageHeight - 40) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+      
+      pdf.setFillColor(255, 249, 196);
+      pdf.rect(15, yPosition, pageWidth - 30, 25, 'F');
+      pdf.setFontSize(8);
+      pdf.setTextColor(38, 50, 56);
+      const disclaimer = 'DISCLAIMER: This analysis is for screening purposes only and is not a medical diagnosis. Please consult a qualified healthcare professional for proper evaluation and diagnosis.';
+      const disclaimerLines = pdf.splitTextToSize(disclaimer, pageWidth - 40);
+      pdf.text(disclaimerLines, 20, yPosition + 5);
+
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text('Generated by VoiceCare AI | For Healthcare Professional Reference Only', pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+      // Save the PDF
+      pdf.save(`VoiceCare_Report_${latestTest.id}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  const handleClearCache = () => {
+    if (confirm('Are you sure you want to clear all test history? This action cannot be undone.')) {
+      clearCache();
+    }
+  };
 
   if (!latestTest) {
     return (
@@ -99,6 +234,12 @@ export const ResultsPage: React.FC = () => {
 
         <GeminiInsight summary={latestTest.gemini_summary} />
 
+        {tests.length > 1 && (
+          <div ref={chartRef}>
+            <ProgressChart tests={tests} />
+          </div>
+        )}
+
         <Card>
           <h2 className="text-xl font-semibold text-[#263238] mb-4">
             Voice Analysis Details
@@ -149,11 +290,11 @@ export const ResultsPage: React.FC = () => {
           </h2>
           <div className="space-y-3">
             <Button
-              onClick={() => setCurrentPage('report')}
-              icon={<FileText className="w-5 h-5" />}
+              onClick={handleDownloadPDF}
+              icon={<Download className="w-5 h-5" />}
               className="w-full"
             >
-              Export as PDF Report
+              Download PDF Report
             </Button>
             <Button
               onClick={() => setCurrentPage('record')}
@@ -161,7 +302,7 @@ export const ResultsPage: React.FC = () => {
               variant="secondary"
               className="w-full"
             >
-              Retest
+              Take Another Test
             </Button>
             {tests.length > 1 && (
               <Button
@@ -170,7 +311,17 @@ export const ResultsPage: React.FC = () => {
                 variant="outline"
                 className="w-full"
               >
-                Compare with Previous Tests
+                View Test History
+              </Button>
+            )}
+            {tests.length > 0 && (
+              <Button
+                onClick={handleClearCache}
+                icon={<Trash2 className="w-5 h-5" />}
+                variant="outline"
+                className="w-full text-red-600 hover:bg-red-50 border-red-300"
+              >
+                Clear All Data
               </Button>
             )}
           </div>

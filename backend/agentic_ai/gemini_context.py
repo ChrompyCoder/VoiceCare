@@ -6,8 +6,9 @@ NO FALLBACKS - Requires valid API key
 
 import json
 from datetime import datetime, timedelta
-import config
-import google.generativeai as genai
+from . import config
+import os
+from google import genai
 
 
 class GeminiContextEngine:
@@ -23,11 +24,13 @@ class GeminiContextEngine:
             raise ValueError(
                 "❌ GEMINI API KEY NOT SET!\n"
                 "Get your API key from: https://makersuite.google.com/app/apikey\n"
-                "Then update it in: agentic-ai/config.py (line 20)"
+                "Then update it in: agentic_ai/config.py (line 20)"
             )
         
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel(config.GEMINI_MODEL)
+        # Set API key as environment variable for genai client
+        os.environ['GOOGLE_API_KEY'] = self.api_key
+        self.client = genai.Client()
+        self.model_name = config.GEMINI_MODEL
     
     def analyze_progress(self, test_history, current_result):
         """
@@ -242,7 +245,10 @@ Guidelines:
 - DO NOT diagnose or provide medical advice
 """
         
-        response = self.model.generate_content(prompt)
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt
+        )
         summary_text = response.text
         
         # Extract recommendations (simple parsing)

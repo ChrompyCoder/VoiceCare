@@ -6,7 +6,7 @@ Creates professional medical reports for doctor consultation
 import json
 from datetime import datetime
 from pathlib import Path
-import config
+from . import config
 
 try:
     from reportlab.lib import colors

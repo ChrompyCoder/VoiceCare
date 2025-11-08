@@ -23,7 +23,7 @@ SCALER_PATH = MODELS_DIR / 'scaler_20251108_154914.pkl'
 # Gemini API Configuration
 # GET YOUR API KEY FROM: https://makersuite.google.com/app/apikey
 # PASTE IT BELOW (replace 'PASTE_YOUR_GEMINI_API_KEY_HERE')
-GEMINI_API_KEY = 'AIzaSyBJyEY-_TS9zNecIqNhyL98gokDP-JrfNY'  # ← PUT YOUR API KEY HERE
+GEMINI_API_KEY = 'AIzaSyAF4-72TvD-5LjaRKoO2d6k3g6gTu_TheY'  # ← PUT YOUR API KEY HERE
 GEMINI_MODEL = 'gemini-2.0-flash'  # Using latest fast model
 
 # SHAP Configuration

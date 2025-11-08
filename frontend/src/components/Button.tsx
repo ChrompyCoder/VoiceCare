@@ -1,4 +1,5 @@
-import React from 'react';
+﻿import React from 'react';
+import { cn } from '../utils/cn';
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -28,31 +29,24 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-8 py-4 text-lg',
     };
 
+    return (
+      <button
+        className={cn(
+          baseClasses,
+          variantClasses[variant],
+          sizeClasses[size],
+          className
+        )}
+        ref={ref}
+        {...props}
+      >
+        {icon && <span className="mr-2">{icon}</span>}
+        {children}
+      </button>
+    );
+  }
+);
 
-export const Button: React.FC<ButtonProps> = ({
-  children,
-  onClick,
-  variant = 'primary',
-  icon,
-  className = '',
-  disabled = false
-}) => {
-  const baseClasses = 'px-6 py-3 rounded-full font-semibold transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed';
+Button.displayName = 'Button';
 
-  const variantClasses = {
-    primary: 'bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] text-white hover:scale-105',
-    secondary: 'bg-[#81C784] text-white hover:scale-105',
-    outline: 'border-2 border-[#2E7D32] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white'
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
-    >
-      {icon && <span>{icon}</span>}
-      {children}
-    </button>
-  );
-};
+export { Button };
