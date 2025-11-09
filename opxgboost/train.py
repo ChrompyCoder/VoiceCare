@@ -38,9 +38,11 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Configuration
-DATA_DIR = "../data"
-RESULTS_DIR = "results"
-MODELS_DIR = "models"
+# Use absolute path resolution to work from any directory
+SCRIPT_DIR = Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+RESULTS_DIR = SCRIPT_DIR / "results"
+MODELS_DIR = SCRIPT_DIR / "models"
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 FEATURE_SET = 'ComParE_2016'  # Uses FUNCTIONALS (temporal features), not LLDs

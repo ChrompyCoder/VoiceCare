@@ -28,3 +28,14 @@ audioread>=3.0.0
 
 # For audio effects (time stretch, pitch shift)
 numba>=0.56.0
+
+Flask
+Flask-Cors
+werkzeug
+opensmile
+xgboost
+joblib
+# Add other dependencies from agentic-ai/requirements.txt if needed
+# but avoid tensorflow if it's not used
+google-generativeai
+reportlab
