@@ -75,31 +75,37 @@ Linux: `npm install` only for the first time
 
 ---
 
-### 2. Frontend Acoustic Features Display
+### 2. SHAP Explainability Integration
 **Status:** Fully Integrated
 
 **Implementation:**
-- **File:** `frontend/src/components/AcousticFeaturesCard.tsx` (170+ lines)
-- **Component:** `AcousticFeaturesCard`
+- **File:** `backend/agentic_ai/shap_xgboost.py` (XGBoost-specific SHAP explainer)
+- **File:** `backend/agentic_ai/shap_explainer.py` (Deep learning SHAP support)
+- **Component:** `XGBoostShapExplainer`
 
 **Features:**
-- Displays all 5 acoustic metrics with:
-  - Visual status indicators (color-coded)
-  - Status labels (Excellent/Good/Fair/Needs Attention)
-  - Detailed descriptions for each metric
-  - Progress bars showing relative values
-  - Educational information panel
+- SHAP (SHapley Additive exPlanations) values for model interpretability
+- Feature importance analysis showing which voice characteristics influenced the prediction
+- Waterfall plots visualizing individual prediction explanations
+- Base64-encoded visualization images for frontend display
+- Automatic feature name labeling using OpenSMILE feature names
 
-**Status Color Coding:**
-- 🟢 Green: Excellent values
-- 🔵 Blue: Good values
-- 🟡 Yellow: Fair values (monitor)
-- 🟠 Orange: Needs attention
+**SHAP Analysis Provides:**
+- Top contributing features (ranked by importance)
+- Feature categories (prosodic, spectral, voice quality, temporal)
+- Clinical interpretation of feature impacts
+- Visual waterfall charts showing cumulative feature effects
 
 **Integration:**
-- Added to `ResultsPage.tsx` (conditionally rendered if acoustic_features exist)
-- Type definitions updated in `types/index.ts`
-- RecordPage passes acoustic_features from API to test object
+- Initialized in `production_inference.py` during system startup
+- Uses historical feature vectors as SHAP background data
+- Generates explanations for each prediction
+- Results included in API response as `shap_analysis` field
+- Graceful fallback if SHAP initialization fails
+
+**Technical Details:**
+- Uses TreeExplainer for XGBoost model compatibility
+- Handles base_score normalization for accurate SHAP values
 
 ---
 
@@ -194,28 +200,21 @@ ResultsPage Display:
 **Response Structure:**
 ```json
 {
-  "risk_score": 0.23,
-  "confidence": 0.92,
-  "risk_level": "Low",
-  "voice_stability_index": 0.847,
-  "gemini_summary": "Your voice shows good stability with consistent frequency...",
-  "progress_analysis": "First test - baseline established",
-  "ai_findings": [
-    "Voice characteristics analyzed using OpenSMILE features",
-    "XGBoost model prediction with 92% confidence",
-    "Voice frequency is stable (Jitter: 0.0234)",
-    "Voice amplitude is consistent (Shimmer: 0.0567)",
-    "Good voice clarity detected (HNR: 18.34 dB)"
-  ],
+  "risk_score": float,
+  "confidence": float,
+  "risk_level": string,
+  "voice_stability_index": float,
+  "gemini_summary": string,
+  "progress_analysis": string,  // MISSING in README
+  "ai_findings": array,
   "acoustic_features": {
-    "jitter": 0.0234,
-    "shimmer": 0.0567,
-    "hnr": 18.34,
-    "pitch_variation": 12.3,
-    "energy_variation": 19.8
+    "jitter": float,
+    "shimmer": float,
+    "hnr": float,
+    "pitch_variation": float,
+    "energy_variation": float
   },
-  "shap_analysis": null
-}
+  "shap_analysis": object  // MISSING in README
 }
 ```
 
