@@ -199,6 +199,7 @@ ResultsPage Display:
   "risk_level": "Low",
   "voice_stability_index": 0.847,
   "gemini_summary": "Your voice shows good stability with consistent frequency...",
+  "progress_analysis": "First test - baseline established",
   "ai_findings": [
     "Voice characteristics analyzed using OpenSMILE features",
     "XGBoost model prediction with 92% confidence",
@@ -212,7 +213,9 @@ ResultsPage Display:
     "hnr": 18.34,
     "pitch_variation": 12.3,
     "energy_variation": 19.8
-  }
+  },
+  "shap_analysis": null
+}
 }
 ```
 
