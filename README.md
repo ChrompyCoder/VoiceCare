@@ -7,7 +7,7 @@
 Successfully implemented a comprehensive voice analysis system with acoustic feature analysis, enhanced AI feedback, and detailed reporting capabilities. The system now provides deep insights into SHAP (SHapley Additive exPlanations) alongside Parkinson's disease risk assessment.
 
 ---
-## 📦 Dependencies
+## Dependencies
 ### Build a python venv
 Linux:
 `python3 -m venv ./.venv`
