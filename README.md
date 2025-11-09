@@ -1,6 +1,6 @@
 # VoiceCare: Detection of Parkinson's disease using Voice(.wav or live recording)
 
-@san @saksham_yadav
+@sanjayj @sakshamyadav
 
 ## Overview
 
