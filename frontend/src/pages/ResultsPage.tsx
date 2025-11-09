@@ -49,11 +49,21 @@ export const ResultsPage: React.FC = () => {
       const { jsPDF } = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
 
-      // Helper: ensure we have a data URL for images
-      const toDataUrlIfNeeded = async (imgSrc: string): Promise<string | null> => {
+      // Helper: ensure we have a data URL and natural size for images
+      const toDataUrlIfNeeded = async (imgSrc: string): Promise<{url: string, w: number, h: number} | null> => {
         try {
           if (!imgSrc) return null;
-          if (imgSrc.startsWith('data:image')) return imgSrc;
+          if (imgSrc.startsWith('data:image')) {
+            // Try to infer size by loading into Image
+            const probe = new Image();
+            probe.crossOrigin = 'anonymous';
+            const loaded: HTMLImageElement = await new Promise((resolve, reject) => {
+              probe.onload = () => resolve(probe);
+              probe.onerror = reject;
+              probe.src = imgSrc;
+            });
+            return { url: imgSrc, w: loaded.naturalWidth, h: loaded.naturalHeight };
+          }
           // Attempt to load and convert to data URL
           const img = new Image();
           // Allow CORS if server supports it
@@ -69,7 +79,7 @@ export const ResultsPage: React.FC = () => {
           const ctx = canvas.getContext('2d');
           if (!ctx) return null;
           ctx.drawImage(loaded, 0, 0);
-          return canvas.toDataURL('image/png');
+          return { url: canvas.toDataURL('image/png'), w: loaded.naturalWidth, h: loaded.naturalHeight };
         } catch {
           return null;
         }
@@ -154,13 +164,22 @@ export const ResultsPage: React.FC = () => {
         // Contribution Plot
         const contribImgSrc = sa.visualization_base64 ?? sa.visualization_path ?? sa.visualization;
         if (contribImgSrc) {
-          const dataUrl = await toDataUrlIfNeeded(contribImgSrc);
-          if (dataUrl) {
+          const data = await toDataUrlIfNeeded(contribImgSrc);
+          if (data) {
             try {
-              const imgWidth = pageWidth - 30;
-              const imgHeight = 60; // mm; approximate height
-              pdf.addImage(dataUrl, 'PNG', 15, yPosition, imgWidth, imgHeight);
-              yPosition += imgHeight + 6;
+              const maxWidth = pageWidth - 30;
+              // preserve aspect ratio (mm sizes use same ratio)
+              let imgW = maxWidth;
+              let imgH = (data.h / data.w) * imgW;
+              // ensure it fits remaining page height
+              const maxHeight = pageHeight - yPosition - 20;
+              if (imgH > maxHeight) {
+                const scale = maxHeight / imgH;
+                imgW *= scale;
+                imgH *= scale;
+              }
+              pdf.addImage(data.url, 'PNG', 15, yPosition, imgW, imgH);
+              yPosition += imgH + 6;
             } catch {}
           }
         }
@@ -168,17 +187,24 @@ export const ResultsPage: React.FC = () => {
         // Heatmap
         const heatmapImgSrc = sa.heatmap_base64 ?? sa.heatmap_path ?? sa.heatmap;
         if (heatmapImgSrc) {
-          const dataUrl = await toDataUrlIfNeeded(heatmapImgSrc);
-          if (dataUrl) {
+          const data = await toDataUrlIfNeeded(heatmapImgSrc);
+          if (data) {
             try {
               if (yPosition > pageHeight - 80) {
                 pdf.addPage();
                 yPosition = 20;
               }
-              const imgWidth = pageWidth - 30;
-              const imgHeight = 60; // mm; approximate height
-              pdf.addImage(dataUrl, 'PNG', 15, yPosition, imgWidth, imgHeight);
-              yPosition += imgHeight + 10;
+              const maxWidth = pageWidth - 30;
+              let imgW = maxWidth;
+              let imgH = (data.h / data.w) * imgW;
+              const maxHeight = pageHeight - yPosition - 20;
+              if (imgH > maxHeight) {
+                const scale = maxHeight / imgH;
+                imgW *= scale;
+                imgH *= scale;
+              }
+              pdf.addImage(data.url, 'PNG', 15, yPosition, imgW, imgH);
+              yPosition += imgH + 10;
             } catch {}
           }
         }
@@ -203,35 +229,7 @@ export const ResultsPage: React.FC = () => {
         yPosition += progressLines.length * 5 + 10;
       }
 
-      // Acoustic Features Section
-      if (latestTest.acoustic_features) {
-        if (yPosition > pageHeight - 80) {
-          pdf.addPage();
-          yPosition = 20;
-        }
-
-        pdf.setFontSize(14);
-        pdf.setTextColor(38, 50, 56);
-        pdf.text('Voice Quality Metrics', 15, yPosition);
-        yPosition += 8;
-
-        const features = latestTest.acoustic_features;
-        const metricsData = [
-          ['Jitter (Frequency Stability)', features.jitter.toFixed(4), features.jitter <= 0.05 ? 'Good' : 'Needs Attention'],
-          ['Shimmer (Amplitude Consistency)', features.shimmer.toFixed(4), features.shimmer <= 0.10 ? 'Good' : 'Needs Attention'],
-          ['HNR (Voice Clarity)', `${features.hnr.toFixed(2)} dB`, features.hnr >= 15 ? 'Good' : 'Could be improved'],
-          ['Pitch Variation', `${features.pitch_variation.toFixed(1)}%`, features.pitch_variation <= 15 ? 'Stable' : 'Variable'],
-          ['Energy Variation', `${features.energy_variation.toFixed(1)}%`, features.energy_variation <= 25 ? 'Consistent' : 'Variable']
-        ];
-
-        pdf.setFontSize(9);
-        pdf.setTextColor(84, 110, 122);
-        metricsData.forEach(([metric, value, status]) => {
-          pdf.text(`${metric}: ${value} - ${status}`, 15, yPosition);
-          yPosition += 5;
-        });
-        yPosition += 5;
-      }
+      // Voice Quality Metrics intentionally omitted from PDF to match UI
 
       // Add chart if available
       if (chartRef.current && tests.length > 1) {

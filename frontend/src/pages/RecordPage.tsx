@@ -11,6 +11,25 @@ export const RecordPage: React.FC = () => {
   const [timer, setTimer] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const steps = [
+    'Initializing model',
+    'Preprocessing audio',
+    'Extracting features',
+    'Scaling & predicting',
+    'Explainability (SHAP)',
+    'Generating inference',
+    'Building report'
+  ];
+  const currentStepIndex = (() => {
+    if (progress < 10) return 0;
+    if (progress < 25) return 1;
+    if (progress < 40) return 2;
+    if (progress < 55) return 3;
+    if (progress < 75) return 4;
+    if (progress < 90) return 5;
+    if (progress < 100) return 6;
+    return steps.length; // done
+  })();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -71,15 +90,23 @@ export const RecordPage: React.FC = () => {
     setProgress(0);
     setError(null);
 
+    // Early steps advance every 0.8s; then taper to a gentle progression
     const progressInterval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 10;
+        // Fast, step-aligned early thresholds: ~0.8s per step for first three steps
+        if (prev < 10) return 12;   // -> Step 1 at 0.8s
+        if (prev < 25) return 26;   // -> Step 2 at 1.6s
+        if (prev < 40) return 41;   // -> Step 3 at 2.4s
+
+        // After early steps, slow down and hold near completion until backend returns
+        if (prev >= 96) return prev;  // plateau until done
+        if (prev < 70) return prev + 2.0;
+        if (prev < 85) return prev + 1.2;
+        if (prev < 92) return prev + 0.8;
+        if (prev < 96) return prev + 0.5;
+        return prev;
       });
-    }, 200);
+    }, 800); // 0.8s per step for the first three steps
 
     try {
       const audioFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
@@ -292,9 +319,28 @@ export const RecordPage: React.FC = () => {
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-sm text-[#546E7A] mt-4">
-                Extracting acoustic biomarkers...
-              </p>
+              <div className="mt-5 space-y-2">
+                {steps.map((label, idx) => {
+                  const done = idx < currentStepIndex;
+                  const active = idx === currentStepIndex;
+                  return (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <span
+                        className={
+                          done
+                            ? 'w-2.5 h-2.5 rounded-full bg-[#2E7D32]'
+                            : active
+                            ? 'w-2.5 h-2.5 rounded-full bg-[#FFA000] animate-pulse'
+                            : 'w-2.5 h-2.5 rounded-full bg-gray-300'
+                        }
+                      />
+                      <span className={done ? 'text-[#263238]' : active ? 'text-[#263238]' : 'text-[#90A4AE]'}>
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
